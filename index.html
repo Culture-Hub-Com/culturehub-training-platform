@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Training - CultureHub</title>
+    <title>Feedback Training</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -84,63 +84,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
             margin-bottom: 30px;
         }
 
-        .brand-dots {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .dot {
-            border-radius: 50%;
-        }
-
-        .dot-1, .dot-2, .dot-3 { 
-            width: 16px; 
-            height: 16px; 
-            border-radius: 50%;
-        }
-
-        .brand-line {
-            width: 200px;
-            height: 6px;
-            background: linear-gradient(90deg, #00f7eb 0%, #24b9ee 25%, #4e6ef3 50%, #9667f4 75%, #c622f0 90%, #f85bf6 100%);
-            border-radius: 3px;
-            position: relative;
-        }
-
-        /* Overlay the dots on the gradient line */
-        .brand-dots {
-            position: absolute;
-            top: -5px;
-            left: 0;
-            width: 100%;
-            height: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 8px;
-        }
-
-        .dot-1, .dot-2, .dot-3 {
-            background: transparent;
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            z-index: 2;
-        }
-
-        .logo-text {
-            font-size: 3.5rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 5px;
-        }
-
-        .tagline {
-            font-size: 1.1rem;
-            color: rgba(255, 255, 255, 0.8);
+        .logo-image {
+            max-width: 350px;
+            height: auto;
             margin-bottom: 40px;
         }
 
@@ -419,10 +368,6 @@
                 padding: 20px 15px;
             }
 
-            .logo-text {
-                font-size: 2.5rem;
-            }
-
             .main-title {
                 font-size: 2rem;
             }
@@ -447,17 +392,10 @@
     <div class="container">
         <header class="header">
             <div class="logo-container">
-                <div class="brand-dots">
-                    <div class="dot dot-1"></div>
-                    <div class="dot dot-2"></div>
-                    <div class="dot dot-3"></div>
-                </div>
-                <div class="brand-line"></div>
+                <img src="/logo.png" alt="Logo" class="logo-image">
             </div>
-            <h1 class="logo-text">CultureHub</h1>
-            <p class="tagline">Driving Performance Through People</p>
             
-            <h2 class="main-title">Feedback Scenario Training</h2>
+            <h1 class="main-title">Feedback Scenario Training</h1>
             <p class="subtitle">
                 Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.
             </p>
@@ -576,22 +514,25 @@
         // Initialize persona selection
         personaCards.forEach(card => {
             card.addEventListener('click', () => {
-                // Remove selection from other cards
-                personaCards.forEach(c => c.classList.remove('selected'));
+                // Remove selection from other cards AND remove all checkmarks
+                personaCards.forEach(c => {
+                    c.classList.remove('selected');
+                    const existingIndicator = c.querySelector('.selection-indicator');
+                    if (existingIndicator) {
+                        existingIndicator.remove();
+                    }
+                });
                 
                 // Select this card
                 card.classList.add('selected');
                 selectedPersona = card.dataset.persona;
                 selectedAgentId = card.dataset.agentId;
                 
-                // Add selection indicator
-                let indicator = card.querySelector('.selection-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('div');
-                    indicator.className = 'selection-indicator';
-                    indicator.textContent = '✓';
-                    card.appendChild(indicator);
-                }
+                // Add selection indicator to ONLY this card
+                const indicator = document.createElement('div');
+                indicator.className = 'selection-indicator';
+                indicator.textContent = '✓';
+                card.appendChild(indicator);
                 
                 // Show form with animation
                 formSection.classList.add('visible');
