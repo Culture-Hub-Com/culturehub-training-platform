@@ -1,77 +1,57 @@
-// pages/feedback.js
-import { useEffect, useMemo, useState } from "react";
+import Head from "next/head";
+import { useEffect, useRef, useState, useMemo } from "react";
 
-// Small hook to load Retell SDK in the browser (avoids SSR issues)
-function useRetellClient() {
-  const [retell, setRetell] = useState(null);
+export default function Feedback() {
+  // ——— Retell SDK client (loaded only in the browser) ———
+  const retellRef = useRef(null);
+
   useEffect(() => {
     let mounted = true;
-    // Dynamic import so Next.js doesn't try to load it on the server
-    import("retell-client-js-sdk")
-      .then((m) => {
+    (async () => {
+      try {
+        const mod = await import("retell-client-js-sdk");
         if (!mounted) return;
-        const client = new m.RetellWebClient();
-        // Helpful logs
-        client.on("call-started", () => console.log("Retell: call-started"));
-        client.on("call-ended", () => console.log("Retell: call-ended"));
-        client.on("error", (e) => console.error("Retell error:", e));
-        setRetell(client);
-      })
-      .catch((e) => console.error("Failed to load Retell SDK:", e));
-    return () => { mounted = false; };
+        const client = new mod.RetellWebClient();
+        client.on("call-started", () => {
+          console.log("Retell: call-started");
+          setIsInCall(true);
+          setIsStarting(false);
+        });
+        client.on("call-ended", () => {
+          console.log("Retell: call-ended");
+          setIsInCall(false);
+        });
+        client.on("error", (e) => console.error("Retell SDK error:", e));
+        retellRef.current = client;
+        console.log("Retell SDK initialised");
+      } catch (e) {
+        console.error("Failed to initialise Retell SDK:", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+      retellRef.current = null;
+    };
   }, []);
-  return retell;
-}
 
-const personaCards = [
-  {
-    key: "dominance",
-    title: "High Dominance",
-    emoji: "D",
-    desc:
-      "Direct, results-focused, and competitive. May push back against feedback. Values efficiency and bottom-line impact.",
-    agentId: "agent_placeholder_d",
-  },
-  {
-    key: "influence",
-    title: "High Influence",
-    emoji: "I",
-    desc:
-      "Enthusiastic, people-oriented, and optimistic. May take feedback personally. Values relationships and recognition.",
-    agentId: "agent_b9c3042ecd4b4d5a7b64e7caee", // <- known working agent
-  },
-  {
-    key: "steadiness",
-    title: "High Steadiness",
-    emoji: "S",
-    desc:
-      "Calm, supportive, and collaborative. May avoid confrontation. Values stability and team harmony.",
-    agentId: "agent_placeholder_s",
-  },
-  {
-    key: "conscientiousness",
-    title: "High Conscientiousness",
-    emoji: "C",
-    desc:
-      "Analytical, detail-oriented, and systematic. May question validity; wants specifics. Values accuracy and quality.",
-    agentId: "agent_placeholder_c",
-  },
-];
-
-export default function FeedbackPage() {
-  const retell = useRetellClient();
-
-  // UI state
+  // ——— UI State (matches your original behaviour) ———
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
   const [attempt, setAttempt] = useState(1);
+
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [inCall, setInCall] = useState(false);
+
+  const [status, setStatus] = useState({ type: "", text: "" }); // 'success' | 'error' | ''
+  const [isStarting, setIsStarting] = useState(false);
+  const [isInCall, setIsInCall] = useState(false);
+
+  const emailOK = useMemo(
+    () => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
+    [email]
+  );
 
   const canSubmit =
     !!selectedPersona &&
@@ -79,237 +59,438 @@ export default function FeedbackPage() {
     !!name.trim() &&
     !!company.trim() &&
     !!email.trim() &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-    !!accessCode.trim();
+    emailOK &&
+    !!accessCode.trim() &&
+    !isStarting &&
+    !isInCall;
 
-  async function startSession(e) {
+  const personaCards = [
+    {
+      key: "dominance",
+      title: "High Dominance",
+      letter: "D",
+      iconClass: "persona-d",
+      desc:
+        "Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.",
+      agentId: "agent_placeholder_d",
+    },
+    {
+      key: "influence",
+      title: "High Influence",
+      letter: "I",
+      iconClass: "persona-i",
+      desc:
+        "Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.",
+      agentId: "agent_b9c3042ecd4b4d5a7b64e7caee", // live agent
+    },
+    {
+      key: "steadiness",
+      title: "High Steadiness",
+      letter: "S",
+      iconClass: "persona-s",
+      desc:
+        "Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.",
+      agentId: "agent_placeholder_s",
+    },
+    {
+      key: "conscientiousness",
+      title: "High Conscientiousness",
+      letter: "C",
+      iconClass: "persona-c",
+      desc:
+        "Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.",
+      agentId: "agent_placeholder_c",
+    },
+  ];
+
+  function showStatus(text, type) {
+    setStatus({ text, type });
+  }
+  function hideStatus() {
+    setStatus({ text: "", type: "" });
+  }
+
+  // ——— Start Voice Session ———
+  async function onSubmit(e) {
     e.preventDefault();
-    setStatus("");
-    if (!retell) {
-      setStatus("Retell SDK not initialised (still loading). Give it a second and try again.");
-      return;
-    }
-    if (!canSubmit) {
-      setStatus("Please complete the form and select a personality.");
+    hideStatus();
+
+    if (isStarting || isInCall) return; // guard double-fire
+
+    if (!selectedPersona || !selectedAgentId) {
+      showStatus("Please select a personality type first.", "error");
       return;
     }
     if (String(selectedAgentId).includes("placeholder")) {
-      setStatus("That personality is coming soon. Please choose High Influence for now.");
+      const card = personaCards.find((c) => c.key === selectedPersona);
+      showStatus(
+        `${card?.title || "This"} personality is coming soon! Please try High Influence for now.`,
+        "error"
+      );
+      return;
+    }
+    if (!retellRef.current) {
+      showStatus("Retell SDK not initialised yet. Give it a moment, then try again.", "error");
       return;
     }
 
-    try {
-      setBusy(true);
+    setIsStarting(true);
 
-      // 1) Ask our API for a short-lived access token
+    const payload = {
+      name: name.trim(),
+      company: company.trim(),
+      email: email.trim(),
+      accessCode: accessCode.trim(),
+      persona: selectedPersona,
+      agentId: selectedAgentId,
+      scenario: "feedback",
+      attempt,
+    };
+
+    try {
+      // 1) Get short-lived access token from our API
       const res = await fetch("/api/create-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          company,
-          email,
-          accessCode,
-          persona: selectedPersona,
-          agentId: selectedAgentId,
-          scenario: "feedback",
-          attempt,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.message || "Failed to create call");
-      if (!data.access_token) throw new Error("No access_token returned from server.");
+      if (!data.access_token) throw new Error("No access token returned from server.");
 
-      // 2) Start the Retell voice call
-      await retell.startCall({ accessToken: data.access_token });
-      setInCall(true);
-      setStatus("Connected — start talking when you hear the agent.");
-
+      // 2) Start the Retell call
+      await retellRef.current.startCall({ accessToken: data.access_token });
+      setIsInCall(true);
+      setIsStarting(false);
+      showStatus("Connected! You can start speaking.", "success");
     } catch (err) {
       console.error(err);
-      setStatus(`Failed to connect: ${err.message}`);
-    } finally {
-      setBusy(false);
+      setIsStarting(false);
+      showStatus(err.message || "Failed to start training session. Please try again.", "error");
     }
   }
 
+  // ——— End Voice Session ———
   async function endSession() {
     try {
-      if (retell) await retell.stopCall();
-      setInCall(false);
-      setStatus("Session ended. Nice work.");
+      if (retellRef.current) {
+        await retellRef.current.stopCall();
+      }
     } catch (e) {
-      console.error(e);
-      setStatus("Tried to end the session but something went odd.");
+      console.error("Error stopping call:", e);
+    } finally {
+      setIsInCall(false);
+      setIsStarting(false);
+      showStatus("Training session completed!", "success");
     }
   }
 
-  // Styles kept inline for simplicity (we can move to CSS later)
-  const Card = ({ p }) => (
-    <button
-      onClick={() => {
-        setSelectedPersona(p.key);
-        setSelectedAgentId(p.agentId);
-      }}
-      aria-pressed={selectedPersona === p.key}
-      style={{
-        textAlign: "left",
-        padding: 20,
-        borderRadius: 16,
-        border: `1px solid ${selectedPersona === p.key ? "#f85bf6" : "rgba(255,255,255,0.15)"}`,
-        background:
-          selectedPersona === p.key ? "rgba(248, 91, 246, 0.2)" : "rgba(255,255,255,0.08)",
-        cursor: "pointer",
-        transition: "transform .15s ease, background .15s ease, border .15s ease",
-      }}
-    >
-      <div style={{
-        width: 56, height: 56, borderRadius: "50%",
-        display: "grid", placeItems: "center", fontWeight: 700, marginBottom: 12,
-        background: {
-          dominance: "linear-gradient(135deg,#dc2626,#b91c1c)",
-          influence: "linear-gradient(135deg,#fbbf24,#f59e0b)",
-          steadiness: "linear-gradient(135deg,#10b981,#059669)",
-          conscientiousness: "linear-gradient(135deg,#3b82f6,#2563eb)",
-        }[p.key], color: "#fff"
-      }}>
-        {p.emoji}
-      </div>
-      <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 6 }}>{p.title}</div>
-      <div style={{ opacity: 0.8, lineHeight: 1.5, fontSize: 14 }}>{p.desc}</div>
-    </button>
-  );
-
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" }}>
-      {/* Header */}
-      <header style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 20px", textAlign: "center" }}>
-        <img alt="CultureHub" src="/logo.png" style={{ width: 220, height: "auto", margin: "0 auto 24px" }} />
-        <h1 style={{ fontSize: 36, fontWeight: 700, marginBottom: 8 }}>
-          Feedback Scenario Training
-        </h1>
-        <p style={{ opacity: 0.8, maxWidth: 700, margin: "0 auto" }}>
-          Practice giving constructive feedback using the SBI framework. Choose your conversation
-          partner’s personality type below.
-        </p>
-      </header>
+    <>
+      <Head>
+        <title>Feedback Training</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Font to match original */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
 
-      {/* Grid + Form */}
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px 64px" }}>
-        {/* Persona Grid */}
-        <section style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: 20,
-          marginBottom: 32,
-        }}>
-          {personaCards.map((p) => <Card key={p.key} p={p} />)}
-        </section>
+      {/* Floating color swirls */}
+      <div className="color-swirl swirl-1" />
+      <div className="color-swirl swirl-2" />
+      <div className="color-swirl swirl-3" />
 
-        {/* Form */}
-        <section style={{
-          maxWidth: 520, margin: "0 auto",
-          padding: 24,
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.14)"
-        }}>
-          <h2 style={{ textAlign: "center", marginBottom: 16 }}>
-            {selectedPersona ? `Training with ${personaCards.find(x=>x.key===selectedPersona)?.title}` : "Your Details"}
-          </h2>
-
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16 }}>
-            <button
-              onClick={() => setAttempt(1)}
-              className={attempt === 1 ? "active" : ""}
-              style={attemptBtn(attempt === 1)}
-              type="button"
-            >
-              Attempt 1 (Before Training)
-            </button>
-            <button
-              onClick={() => setAttempt(2)}
-              className={attempt === 2 ? "active" : ""}
-              style={attemptBtn(attempt === 2)}
-              type="button"
-            >
-              Attempt 2 (After Training)
-            </button>
+      <div className="container">
+        <header className="header">
+          <div className="logo-container">
+            <img src="/logo.png" alt="Logo" className="logo-image" />
           </div>
+          <h1 className="main-title">Feedback Scenario Training</h1>
+          <p className="subtitle">
+            Practice giving constructive feedback using the SBI framework. Choose your conversation
+            partner&apos;s personality type below.
+          </p>
+        </header>
 
-          <form onSubmit={startSession}>
-            <Input label="Your Name" value={name} onChange={setName} placeholder="Jane Smith" />
-            <Input label="Company" value={company} onChange={setCompany} placeholder="CultureHub" />
-            <Input label="Email Address" value={email} onChange={setEmail} type="email" placeholder="you@company.com" />
-            <Input label="Access Code" value={accessCode} onChange={setAccessCode} placeholder="Enter your access code" />
+        <main>
+          {/* Persona Grid */}
+          <section className="personas-grid" id="personasGrid">
+            {personaCards.map((card) => {
+              const selected = selectedPersona === card.key;
+              return (
+                <div
+                  key={card.key}
+                  className={`persona-card${selected ? " selected" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedPersona(card.key);
+                    setSelectedAgentId(card.agentId);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setSelectedPersona(card.key);
+                      setSelectedAgentId(card.agentId);
+                    }
+                  }}
+                >
+                  <div className={`persona-icon ${card.iconClass}`}>{card.letter}</div>
+                  <h3 className="persona-title">{card.title}</h3>
+                  <p className="persona-description">{card.desc}</p>
+                  {selected && <div className="selection-indicator">✓</div>}
+                </div>
+              );
+            })}
+          </section>
 
-            {!inCall ? (
-              <button disabled={!canSubmit || busy} style={cta}>
-                {busy ? "Connecting…" : "Start Voice Training Session"}
+          {/* Form */}
+          <section className={`form-section ${selectedPersona ? "visible" : ""}`} id="participantForm">
+            <h3 className="form-title">
+              {selectedPersona
+                ? `Training with ${
+                    personaCards.find((c) => c.key === selectedPersona)?.title
+                  } Employee`
+                : "Ready to Start Your Training"}
+            </h3>
+
+            {/* IMPORTANT: form hidden during call to avoid accidental submit */}
+            <form id="trainingForm" onSubmit={onSubmit} style={{ display: isInCall ? "none" : "block" }}>
+              <div className="attempt-selector">
+                <label className="form-label">Training Attempt</label>
+                <div className="attempt-buttons">
+                  <div
+                    className={`attempt-button ${attempt === 1 ? "selected" : ""}`}
+                    onClick={() => setAttempt(1)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    Attempt 1 (Before Training)
+                  </div>
+                  <div
+                    className={`attempt-button ${attempt === 2 ? "selected" : ""}`}
+                    onClick={() => setAttempt(2)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    Attempt 2 (After Training)
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="participantName">Your Name</label>
+                <input
+                  id="participantName"
+                  className="form-input"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  type="text"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="participantCompany">Company</label>
+                <input
+                  id="participantCompany"
+                  className="form-input"
+                  placeholder="Your company name"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  required
+                  type="text"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="participantEmail">Email Address</label>
+                <input
+                  id="participantEmail"
+                  className="form-input"
+                  placeholder="your.email@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  type="email"
+                  style={
+                    email && !emailOK
+                      ? { borderColor: "#dc2626", boxShadow: "0 0 0 3px rgba(220, 38, 38, 0.2)" }
+                      : undefined
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="accessCode">Access Code</label>
+                <input
+                  id="accessCode"
+                  className="form-input"
+                  placeholder="Enter your training access code"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  required
+                  type="text"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="start-button"
+                id="startButton"
+                disabled={!canSubmit}
+              >
+                {isStarting ? "Connecting…" : "Start Voice Training Session"}
               </button>
-            ) : (
-              <button type="button" onClick={endSession} style={{ ...cta, background: "linear-gradient(135deg,#dc2626,#b91c1c)" }}>
+            </form>
+
+            {/* Loading indicator */}
+            <div className={`loading ${isStarting ? "visible" : ""}`} id="loadingIndicator">
+              <div className="spinner"></div>
+              <p>Connecting to your training session...</p>
+            </div>
+
+            {/* End call button (separate from form; type=button) */}
+            {isInCall && (
+              <button
+                id="end-session-btn"
+                type="button"
+                className="start-button"
+                style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", marginTop: 20 }}
+                onClick={endSession}
+              >
                 End Training Session
               </button>
             )}
-          </form>
 
-          {status && (
-            <div style={{
-              marginTop: 14, padding: 12, borderRadius: 10,
-              background: status.startsWith("Failed") ? "rgba(255,99,71,.18)" : "rgba(0,247,235,.14)",
-              border: `1px solid ${status.startsWith("Failed") ? "rgba(255,99,71,.5)" : "rgba(0,247,235,.45)"}`
-            }}>
-              {status}
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
+            {/* Status */}
+            {!!status.text && (
+              <div
+                id="statusMessage"
+                className={`status-message ${status.type === "error" ? "status-error" : "status-success"}`}
+                style={{ display: "block" }}
+              >
+                {status.text}
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+
+      {/* —— EXACT CSS from your original page (global) —— */}
+      <style jsx global>{`
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: 'Poppins', sans-serif;
+          background: #000000;
+          min-height: 100vh;
+          color: white;
+          overflow-x: hidden;
+          position: relative;
+        }
+        .color-swirl {
+          position: fixed;
+          border-radius: 50%;
+          filter: blur(60px);
+          opacity: 0.4;
+          animation: float 20s infinite ease-in-out;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .swirl-1 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(248, 91, 246, 0.3), transparent); top: 10%; left: 10%; animation-delay: 0s; }
+        .swirl-2 { width: 200px; height: 200px; background: radial-gradient(circle, rgba(78, 110, 243, 0.25), transparent); top: 50%; right: 15%; animation-delay: -7s; }
+        .swirl-3 { width: 250px; height: 250px; background: radial-gradient(circle, rgba(0, 247, 235, 0.2), transparent); bottom: 20%; left: 20%; animation-delay: -14s; }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+          25% { transform: translateY(-20px) translateX(10px) scale(1.1); }
+          50% { transform: translateY(-10px) translateX(-10px) scale(0.9); }
+          75% { transform: translateY(-30px) translateX(5px) scale(1.05); }
+        }
+        .container { position: relative; z-index: 10; max-width: 1200px; margin: 0 auto; padding: 40px 20px; min-height: 100vh; }
+        .header { text-align: center; margin-bottom: 60px; }
+        .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
+        .logo-image { max-width: 350px; height: auto; margin-bottom: 40px; }
+        .main-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 15px; }
+        .subtitle { font-size: 1.2rem; color: rgba(255, 255, 255, 0.8); max-width: 600px; margin: 0 auto 50px; line-height: 1.6; }
+        .personas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-bottom: 50px; }
+        .persona-card {
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px; padding: 30px; text-align: center;
+          transition: all 0.3s ease; cursor: pointer; position: relative; overflow: hidden;
+        }
+        .persona-card::before {
+          content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+          transition: left 0.5s ease;
+        }
+        .persona-card:hover::before { left: 100%; }
+        .persona-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.2); }
+        .persona-card.selected { background: rgba(248, 91, 246, 0.2); border-color: #f85bf6; transform: scale(1.02); }
+        .persona-icon { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; color: white; position: relative; }
+        .persona-d { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .persona-i { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+        .persona-s { background: linear-gradient(135deg, #10b981, #059669); }
+        .persona-c { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .persona-title { font-size: 1.4rem; font-weight: 600; margin-bottom: 10px; }
+        .persona-description { font-size: 0.95rem; color: rgba(255, 255, 255, 0.8); line-height: 1.6; }
+        .selection-indicator { position: absolute; top: 15px; right: 15px; width: 24px; height: 24px; background: #f85bf6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; }
+        .form-section {
+          background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px; padding: 40px; max-width: 500px; margin: 0 auto;
+          opacity: 0; transform: translateY(20px); transition: all 0.3s ease;
+        }
+        .form-section.visible { opacity: 1; transform: translateY(0); }
+        .form-title { font-size: 1.8rem; font-weight: 600; text-align: center; margin-bottom: 30px; }
+        .form-group { margin-bottom: 25px; }
+        .form-label { display: block; font-size: 0.95rem; font-weight: 500; margin-bottom: 8px; color: rgba(255, 255, 255, 0.9); }
+        .form-input {
+          width: 100%; padding: 15px 20px; border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 12px; background: rgba(255, 255, 255, 0.08); color: white;
+          font-size: 1rem; font-family: 'Poppins', sans-serif; transition: all 0.3s ease;
+        }
+        .form-input:focus {
+          outline: none; border-color: #f85bf6; background: rgba(255, 255, 255, 0.12);
+          box-shadow: 0 0 0 3px rgba(248, 91, 246, 0.2);
+        }
+        .form-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+        .start-button {
+          width: 100%; padding: 18px; background: linear-gradient(135deg, #f85bf6, #c622f0);
+          border: none; border-radius: 12px; color: white; font-size: 1.1rem; font-weight: 600;
+          font-family: 'Poppins', sans-serif; cursor: pointer; transition: all 0.3s ease;
+          margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .start-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(248, 91, 246, 0.3); }
+        .start-button:disabled { background: rgba(255, 255, 255, 0.2); cursor: not-allowed; transform: none; box-shadow: none; }
+        .status-message { text-align: center; padding: 15px; border-radius: 10px; margin-top: 20px; font-weight: 500; }
+        .status-error { background: rgba(255, 99, 71, 0.2); border: 1px solid rgba(255, 99, 71, 0.5); color: #ffcccb; }
+        .status-success { background: rgba(0, 247, 235, 0.2); border: 1px solid rgba(0, 247, 235, 0.5); color: #00f7eb; }
+        .loading { display: none; text-align: center; padding: 20px; }
+        .loading.visible { display: block; }
+        .spinner {
+          border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
+          border-top: 3px solid #f85bf6; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .attempt-selector { margin-bottom: 25px; }
+        .attempt-buttons { display: flex; gap: 10px; justify-content: center; }
+        .attempt-button {
+          padding: 10px 20px; border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px; background: rgba(255, 255, 255, 0.08); color: white; cursor: pointer;
+          transition: all 0.3s ease; font-family: 'Poppins', sans-serif; font-size: 0.9rem;
+        }
+        .attempt-button.selected { background: linear-gradient(135deg, #f85bf6, #c622f0); border-color: #f85bf6; }
+        @media (max-width: 768px) {
+          .container { padding: 20px 15px; }
+          .main-title { font-size: 2rem; }
+          .personas-grid { grid-template-columns: 1fr; gap: 20px; }
+          .form-section { padding: 30px 20px; }
+        }
+      `}</style>
+    </>
   );
 }
-
-// —————————————————— small UI bits ——————————————————
-function Input({ label, value, onChange, placeholder, type = "text" }) {
-  return (
-    <label style={{ display: "block", width: "100%", marginBottom: 14 }}>
-      <div style={{ fontSize: 14, marginBottom: 6, opacity: 0.9 }}>{label}</div>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          borderRadius: 10,
-          border: "1px solid rgba(255,255,255,.2)",
-          background: "rgba(255,255,255,.08)",
-          color: "#fff",
-          outline: "none",
-        }}
-      />
-    </label>
-  );
-}
-
-const cta = {
-  width: "100%",
-  padding: 16,
-  marginTop: 6,
-  border: "none",
-  borderRadius: 12,
-  background: "linear-gradient(135deg,#f85bf6,#c622f0)",
-  color: "#fff",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const attemptBtn = (active) => ({
-  padding: "10px 14px",
-  borderRadius: 8,
-  border: active ? "1px solid #f85bf6" : "1px solid rgba(255,255,255,.2)",
-  background: active ? "linear-gradient(135deg,#f85bf6,#c622f0)" : "rgba(255,255,255,.08)",
-  color: "#fff",
-  cursor: "pointer",
-});
