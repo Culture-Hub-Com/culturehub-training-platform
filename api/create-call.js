@@ -1,5 +1,5 @@
 // api/create-call.js
-// Clean, simple Vercel endpoint for Retell
+// Clean Vercel endpoint for Retell with better error handling
 
 export default async function handler(req, res) {
   // CORS headers (remove * in production if same-origin)
@@ -22,7 +22,12 @@ export default async function handler(req, res) {
 
   // Only POST for actual calls
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: true, message: 'Method not allowed' });
+  }
+
+  // Fail fast if API key is missing
+  if (!process.env.RETELL_API_KEY) {
+    return res.status(500).json({ error: true, message: 'RETELL_API_KEY not set' });
   }
 
   try {
@@ -39,39 +44,39 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         agent_id: agentId,
-        metadata: {
-          participant_name: name,
-          company: company,
-          email: email,
-          scenario: 'feedback',
-          persona: persona,
-          attempt: attempt
+        metadata: { 
+          participant_name: name, 
+          company, 
+          email, 
+          scenario: 'feedback', 
+          persona, 
+          attempt 
         }
       })
     });
 
-    const responseText = await retellResponse.text();
-    
+    const bodyText = await retellResponse.text();
+
     if (!retellResponse.ok) {
-      console.error('Retell error:', retellResponse.status, responseText);
-      return res.status(retellResponse.status).json({ 
+      console.error('Retell error:', retellResponse.status, bodyText);
+      return res.status(retellResponse.status).json({
         error: true,
         status: retellResponse.status,
-        detail: responseText
+        detail: bodyText
       });
     }
 
-    const data = JSON.parse(responseText);
+    const data = JSON.parse(bodyText);
     
-    // Return exactly what Retell gives us
-    res.status(200).json({
-      access_token: data.access_token,
-      call_id: data.call_id
+    // Return exactly what we need
+    return res.status(200).json({ 
+      access_token: data.access_token, 
+      call_id: data.call_id 
     });
 
   } catch (error) {
     console.error('Server error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: true,
       message: error.message 
     });
