@@ -618,8 +618,22 @@
             const email = document.getElementById('participantEmail').value.trim();
             const accessCode = document.getElementById('accessCode').value.trim();
             
-            const isValid = name && company && email && accessCode && selectedPersona;
+            // Email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const isValidEmail = emailRegex.test(email);
+            
+            const isValid = name && company && email && isValidEmail && accessCode && selectedPersona;
             startButton.disabled = !isValid;
+            
+            // Show email error if email is entered but invalid
+            const emailInput = document.getElementById('participantEmail');
+            if (email && !isValidEmail) {
+                emailInput.style.borderColor = '#dc2626';
+                emailInput.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
+            } else {
+                emailInput.style.borderColor = '';
+                emailInput.style.boxShadow = '';
+            }
         }
 
         // Form submission
