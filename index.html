@@ -6,7 +6,7 @@
     <title>Feedback Training</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- ADD THIS LINE FOR RETELL SDK -->
-    <script src="https://sdk.retellai.com/web-sdk/v2.0.0/retell-client-sdk-web.js"></script>
+    <script src="https://unpkg.com/retell-client-js-sdk@2.0.0/dist/index.js"></script>
     <style>
         * {
             margin: 0;
@@ -507,7 +507,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             // Initialize Retell client
             if (typeof RetellWebClient !== 'undefined') {
-                retellClient = new RetellWebClient();
+                retellClient = new Retell.RetellWebClient();
                 
                 // Set up event listeners for call events
                 retellClient.on('call_started', () => {
