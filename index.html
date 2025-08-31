@@ -485,21 +485,6 @@
         </main>
     </div>
 
-    <!-- Retell Web SDK (UMD) - Load BEFORE main script -->
-    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2/dist/umd/index.umd.js"></script>
-    <script>
-        if (!window.RetellWebClient) {
-            console.error('Retell SDK failed to load.');
-        } else if (!window.retell) {
-            window.retell = new window.RetellWebClient();
-            // Use official event names (hyphenated)
-            window.retell.on('error', e => console.error('Retell SDK error:', e));
-            window.retell.on('call-started', () => console.log('Call started'));
-            window.retell.on('call-ended', () => console.log('Call ended'));
-            console.log('Retell SDK initialised');
-        }
-    </script>
-
     <script>
         // Global state
         let selectedPersona = null;
@@ -656,21 +641,71 @@
                     throw new Error('No access token received from server');
                 }
 
-                // Step 2: Use Retell SDK to start the call
-                console.log('Starting call with Retell SDK...');
-                
-                if (!window.retell) {
-                    throw new Error('Retell SDK not initialized');
-                }
-                
-                await window.retell.startCall({ 
-                    accessToken: data.access_token 
+                // Step 2: Get user's microphone permission
+                console.log('Requesting microphone access...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 24000
+                    }
                 });
-                
-                showStatus('Connected! You can start speaking.', 'success');
-                loadingIndicator.classList.remove('visible');
+                console.log('Microphone access granted');
 
-                // Add end call button if it doesn't exist
+                // Step 3: Create WebRTC connection
+                console.log('Creating WebRTC connection...');
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+
+                // Add audio track
+                stream.getTracks().forEach(track => {
+                    pc.addTrack(track, stream);
+                });
+
+                // Handle incoming audio
+                pc.ontrack = (event) => {
+                    console.log('Received audio from Retell');
+                    const audio = new Audio();
+                    audio.srcObject = event.streams[0];
+                    audio.play();
+                    showStatus('Connected! You can start speaking.', 'success');
+                    loadingIndicator.classList.remove('visible');
+                };
+
+                // Create offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                // Step 4: Send SDP with Authorization header (as ChatGPT pointed out)
+                console.log('Sending SDP to Retell...');
+                const sdpResponse = await fetch('https://api.retellai.com/v2/web-call-sdp', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${data.access_token}`,  // KEY FIX: Bearer token in header
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sdp: offer.sdp,
+                        sample_rate: 24000
+                    })
+                });
+
+                if (!sdpResponse.ok) {
+                    const errorText = await sdpResponse.text();
+                    console.error('SDP Error:', errorText);
+                    throw new Error('Failed to connect');
+                }
+
+                const sdpData = await sdpResponse.json();
+                await pc.setRemoteDescription({
+                    type: 'answer',
+                    sdp: sdpData.sdp
+                });
+
+                console.log('Call connected!');
+                
+                // Add end button
                 if (!document.getElementById('end-session-btn')) {
                     const endButton = document.createElement('button');
                     endButton.id = 'end-session-btn';
@@ -678,19 +713,13 @@
                     endButton.className = 'start-button';
                     endButton.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
                     endButton.style.marginTop = '20px';
-                    endButton.onclick = async () => {
-                        try { 
-                            if (window.retell) {
-                                await window.retell.stopCall();
-                            }
-                        } catch (e) {
-                            console.error('Error stopping call:', e);
-                        } finally {
-                            trainingForm.style.display = 'block';
-                            startButton.style.display = 'block';
-                            showStatus('Training session completed!', 'success');
-                            endButton.remove();
-                        }
+                    endButton.onclick = () => {
+                        pc.close();
+                        stream.getTracks().forEach(track => track.stop());
+                        trainingForm.style.display = 'block';
+                        startButton.style.display = 'block';
+                        showStatus('Training session completed!', 'success');
+                        endButton.remove();
                     };
                     formSection.appendChild(endButton);
                 }
