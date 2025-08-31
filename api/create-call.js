@@ -21,14 +21,15 @@ export default async function handler(req, res) {
     // Get the data from your form
     const { name, company, email, accessCode, agentId, persona, attempt } = req.body;
 
-    // For now, accept any access code (we'll add validation later)
-    console.log(`Training session requested by ${name} from ${company}`);
+    // TESTING MODE: Accept ANY access code
+    // Just log it so we can see what people are using
+    console.log(`Training session requested by ${name} from ${company} with code: ${accessCode}`);
 
     // Call Retell API to create the web call
     const retellResponse = await fetch('https://api.retellai.com/v2/create-web-call', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.RETELL_API_KEY}`, // Uses the key from Vercel Environment Variables
+        'Authorization': `Bearer ${process.env.RETELL_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -40,9 +41,6 @@ export default async function handler(req, res) {
           scenario: 'feedback',
           persona: persona,
           attempt: attempt
-        },
-        custom_data: {
-          participant_name: name
         }
       })
     });
@@ -54,8 +52,10 @@ export default async function handler(req, res) {
     }
 
     const data = await retellResponse.json();
+    console.log('Retell response:', data);
 
     // Send back the access token to start the call
+    // IMPORTANT: The field is called "access_token" in the response
     res.status(200).json({
       success: true,
       access_token: data.access_token,
