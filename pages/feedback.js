@@ -75,7 +75,7 @@ export default function Feedback() {
       iconClass: "persona-d",
       desc:
         "Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.",
-      agentId: "agent_placeholder_d",
+      agentId: "agent_2521f34c59eb0bdc62975a8e1e",
     },
     {
       key: "influence",
@@ -93,7 +93,7 @@ export default function Feedback() {
       iconClass: "persona-s",
       desc:
         "Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.",
-      agentId: "agent_placeholder_s",
+      agentId: "agent_c92ec6e95cc1732c47363c535c",
     },
     {
       key: "conscientiousness",
@@ -102,7 +102,7 @@ export default function Feedback() {
       iconClass: "persona-c",
       desc:
         "Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.",
-      agentId: "agent_placeholder_c",
+      agentId: "agent_5342ccfe9d30c7f0ce26d65a2f",
     },
   ];
 
