@@ -2,7 +2,7 @@
 // Vercel API route: exchanges your Retell API key for a short-lived access_token
 
 export default async function handler(req, res) {
-  // CORS (okay for testing; tighten to same-origin in production)
+  // CORS (fine for testing; tighten to same-origin in production)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
