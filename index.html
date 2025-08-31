@@ -3,25 +3,704 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CultureHub Training Platform</title>
+    <title>Feedback Training - CultureHub</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Floating color swirls */
+        .color-swirl {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .swirl-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(248, 91, 246, 0.3), transparent);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .swirl-2 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(78, 110, 243, 0.25), transparent);
+            top: 50%;
+            right: 15%;
+            animation-delay: -7s;
+        }
+
+        .swirl-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(0, 247, 235, 0.2), transparent);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: -14s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
+            25% { transform: translateY(-20px) translateX(10px) scale(1.1); }
+            50% { transform: translateY(-10px) translateX(-10px) scale(0.9); }
+            75% { transform: translateY(-30px) translateX(5px) scale(1.05); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .brand-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .dot {
+            border-radius: 50%;
+        }
+
+        .dot-1, .dot-2, .dot-3 { 
+            width: 16px; 
+            height: 16px; 
+            border-radius: 50%;
+        }
+
+        .brand-line {
+            width: 200px;
+            height: 6px;
+            background: linear-gradient(90deg, #00f7eb 0%, #24b9ee 25%, #4e6ef3 50%, #9667f4 75%, #c622f0 90%, #f85bf6 100%);
+            border-radius: 3px;
+            position: relative;
+        }
+
+        /* Overlay the dots on the gradient line */
+        .brand-dots {
+            position: absolute;
+            top: -5px;
+            left: 0;
+            width: 100%;
+            height: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .dot-1, .dot-2, .dot-3 {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            z-index: 2;
+        }
+
+        .logo-text {
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 5px;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 40px;
+        }
+
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 600px;
+            margin: 0 auto 50px;
+            line-height: 1.6;
+        }
+
+        .personas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .persona-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .persona-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .persona-card:hover::before {
+            left: 100%;
+        }
+
+        .persona-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .persona-card.selected {
+            background: rgba(248, 91, 246, 0.2);
+            border-color: #f85bf6;
+            transform: scale(1.02);
+        }
+
+        .persona-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            position: relative;
+        }
+
+        .persona-d { background: linear-gradient(135deg, #dc2626, #b91c1c); } /* Red for Dominance */
+        .persona-i { background: linear-gradient(135deg, #fbbf24, #f59e0b); } /* Yellow for Influence */
+        .persona-s { background: linear-gradient(135deg, #10b981, #059669); } /* Green for Steadiness */
+        .persona-c { background: linear-gradient(135deg, #3b82f6, #2563eb); } /* Blue for Conscientiousness */
+
+        .persona-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .persona-description {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+        }
+
+        .selection-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 24px;
+            height: 24px;
+            background: #f85bf6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .form-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .form-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #f85bf6;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 3px rgba(248, 91, 246, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .start-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #f85bf6, #c622f0);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .start-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(248, 91, 246, 0.3);
+        }
+
+        .start-button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        .status-error {
+            background: rgba(255, 99, 71, 0.2);
+            border: 1px solid rgba(255, 99, 71, 0.5);
+            color: #ffcccb;
+        }
+
+        .status-success {
+            background: rgba(0, 247, 235, 0.2);
+            border: 1px solid rgba(0, 247, 235, 0.5);
+            color: #00f7eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #f85bf6;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .attempt-selector {
+            margin-bottom: 25px;
+        }
+
+        .attempt-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .attempt-button {
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .attempt-button.selected {
+            background: linear-gradient(135deg, #f85bf6, #c622f0);
+            border-color: #f85bf6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .logo-text {
+                font-size: 2.5rem;
+            }
+
+            .main-title {
+                font-size: 2rem;
+            }
+
+            .personas-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .form-section {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
-<body style="
-    margin: 0;
-    padding: 40px 20px;
-    min-height: 100vh;
-    background: #000000;
-    color: white;
-    font-family: 'Poppins', sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-">
-    <h1 style="font-size: 3rem; margin-bottom: 20px;">CultureHub</h1>
-    <p style="font-size: 1.2rem; color: rgba(255,255,255,0.8); margin-bottom: 40px;">Driving Performance Through People</p>
-    <h2 style="font-size: 2rem; margin-bottom: 20px;">Training Platform Coming Soon</h2>
-    <p style="color: rgba(255,255,255,0.6);">Your AI-powered leadership training platform is being built.</p>
+<body>
+    <!-- Floating color swirls -->
+    <div class="color-swirl swirl-1"></div>
+    <div class="color-swirl swirl-2"></div>
+    <div class="color-swirl swirl-3"></div>
+    
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <div class="brand-dots">
+                    <div class="dot dot-1"></div>
+                    <div class="dot dot-2"></div>
+                    <div class="dot dot-3"></div>
+                </div>
+                <div class="brand-line"></div>
+            </div>
+            <h1 class="logo-text">CultureHub</h1>
+            <p class="tagline">Driving Performance Through People</p>
+            
+            <h2 class="main-title">Feedback Scenario Training</h2>
+            <p class="subtitle">
+                Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.
+            </p>
+        </header>
+
+        <main>
+            <section class="personas-grid" id="personasGrid">
+                <div class="persona-card" data-persona="dominance" data-agent-id="agent_placeholder_d">
+                    <div class="persona-icon persona-d">D</div>
+                    <h3 class="persona-title">High Dominance</h3>
+                    <p class="persona-description">
+                        Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.
+                    </p>
+                </div>
+
+                <div class="persona-card" data-persona="influence" data-agent-id="agent_b9c3042ecd4b4d5a7b64e7caee">
+                    <div class="persona-icon persona-i">I</div>
+                    <h3 class="persona-title">High Influence</h3>
+                    <p class="persona-description">
+                        Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.
+                    </p>
+                </div>
+
+                <div class="persona-card" data-persona="steadiness" data-agent-id="agent_placeholder_s">
+                    <div class="persona-icon persona-s">S</div>
+                    <h3 class="persona-title">High Steadiness</h3>
+                    <p class="persona-description">
+                        Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.
+                    </p>
+                </div>
+
+                <div class="persona-card" data-persona="conscientiousness" data-agent-id="agent_placeholder_c">
+                    <div class="persona-icon persona-c">C</div>
+                    <h3 class="persona-title">High Conscientiousness</h3>
+                    <p class="persona-description">
+                        Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.
+                    </p>
+                </div>
+            </section>
+
+            <section class="form-section" id="participantForm">
+                <h3 class="form-title">Ready to Start Your Training</h3>
+                
+                <form id="trainingForm">
+                    <div class="attempt-selector">
+                        <label class="form-label">Training Attempt</label>
+                        <div class="attempt-buttons">
+                            <div class="attempt-button selected" data-attempt="1">
+                                Attempt 1 (Before Training)
+                            </div>
+                            <div class="attempt-button" data-attempt="2">
+                                Attempt 2 (After Training)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="participantName">Your Name</label>
+                        <input type="text" id="participantName" name="name" class="form-input" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="participantCompany">Company</label>
+                        <input type="text" id="participantCompany" name="company" class="form-input" placeholder="Your company name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="participantEmail">Email Address</label>
+                        <input type="email" id="participantEmail" name="email" class="form-input" placeholder="your.email@company.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="accessCode">Access Code</label>
+                        <input type="text" id="accessCode" name="accessCode" class="form-input" placeholder="Enter your training access code" required>
+                    </div>
+
+                    <button type="submit" class="start-button" id="startButton" disabled>
+                        Start Voice Training Session
+                    </button>
+                </form>
+
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Connecting to your training session...</p>
+                </div>
+
+                <div id="statusMessage" class="status-message" style="display: none;"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Global state
+        let selectedPersona = null;
+        let selectedAgentId = null;
+        let selectedAttempt = 1;
+
+        // DOM elements
+        const personaCards = document.querySelectorAll('.persona-card');
+        const formSection = document.getElementById('participantForm');
+        const trainingForm = document.getElementById('trainingForm');
+        const startButton = document.getElementById('startButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const statusMessage = document.getElementById('statusMessage');
+        const attemptButtons = document.querySelectorAll('.attempt-button');
+
+        // Initialize attempt selection
+        attemptButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                attemptButtons.forEach(b => b.classList.remove('selected'));
+                button.classList.add('selected');
+                selectedAttempt = parseInt(button.dataset.attempt);
+            });
+        });
+
+        // Initialize persona selection
+        personaCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Remove selection from other cards
+                personaCards.forEach(c => c.classList.remove('selected'));
+                
+                // Select this card
+                card.classList.add('selected');
+                selectedPersona = card.dataset.persona;
+                selectedAgentId = card.dataset.agentId;
+                
+                // Add selection indicator
+                let indicator = card.querySelector('.selection-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'selection-indicator';
+                    indicator.textContent = '✓';
+                    card.appendChild(indicator);
+                }
+                
+                // Show form with animation
+                formSection.classList.add('visible');
+                formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Update form title
+                const personaTitle = card.querySelector('.persona-title').textContent;
+                document.querySelector('.form-title').textContent = `Training with ${personaTitle} Employee`;
+                
+                // Enable start button if form is valid
+                checkFormValidity();
+            });
+        });
+
+        // Form validation
+        const formInputs = document.querySelectorAll('.form-input');
+        formInputs.forEach(input => {
+            input.addEventListener('input', checkFormValidity);
+        });
+
+        function checkFormValidity() {
+            const name = document.getElementById('participantName').value.trim();
+            const company = document.getElementById('participantCompany').value.trim();
+            const email = document.getElementById('participantEmail').value.trim();
+            const accessCode = document.getElementById('accessCode').value.trim();
+            
+            const isValid = name && company && email && accessCode && selectedPersona;
+            startButton.disabled = !isValid;
+        }
+
+        // Form submission
+        trainingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedPersona || !selectedAgentId) {
+                showStatus('Please select a personality type first.', 'error');
+                return;
+            }
+
+            // Show loading state
+            startButton.style.display = 'none';
+            loadingIndicator.classList.add('visible');
+            hideStatus();
+
+            // Collect form data
+            const formData = {
+                name: document.getElementById('participantName').value.trim(),
+                company: document.getElementById('participantCompany').value.trim(),
+                email: document.getElementById('participantEmail').value.trim(),
+                accessCode: document.getElementById('accessCode').value.trim(),
+                persona: selectedPersona,
+                agentId: selectedAgentId,
+                scenario: 'feedback',
+                attempt: selectedAttempt
+            };
+
+            try {
+                // Check for placeholder agents
+                if (selectedAgentId.includes('placeholder')) {
+                    const personaTitle = document.querySelector('.persona-card.selected .persona-title').textContent;
+                    throw new Error(`${personaTitle} personality is coming soon! Please try High Influence for now.`);
+                }
+
+                // Simulate API calls for now (replace with real API when backend is ready)
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                showStatus('Training platform is ready! Full voice integration coming in next step.', 'success');
+                
+            } catch (error) {
+                console.error('Training session error:', error);
+                showStatus(error.message || 'Unable to start training session. Please try again.', 'error');
+                
+                // Reset UI
+                startButton.style.display = 'block';
+                loadingIndicator.classList.remove('visible');
+            }
+        });
+
+        // Status message helper
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+        }
+
+        // Add some interactive polish
+        document.addEventListener('mousemove', (e) => {
+            const cards = document.querySelectorAll('.persona-card');
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = (y - centerY) / 20;
+                    const rotateY = (centerX - x) / 20;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+                } else {
+                    card.style.transform = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
