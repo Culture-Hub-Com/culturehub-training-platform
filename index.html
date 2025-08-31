@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feedback Training</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- ADD THIS LINE FOR RETELL SDK -->
+    <script src="https://sdk.retellai.com/v2/retell-client-sdk-web.js"></script>
     <style>
         * {
             margin: 0;
@@ -388,13 +390,12 @@
     <div class="color-swirl swirl-1"></div>
     <div class="color-swirl swirl-2"></div>
     <div class="color-swirl swirl-3"></div>
-    
+
     <div class="container">
         <header class="header">
             <div class="logo-container">
                 <img src="/logo.png" alt="Logo" class="logo-image">
             </div>
-            
             <h1 class="main-title">Feedback Scenario Training</h1>
             <p class="subtitle">
                 Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.
@@ -438,7 +439,6 @@
 
             <section class="form-section" id="participantForm">
                 <h3 class="form-title">Ready to Start Your Training</h3>
-                
                 <form id="trainingForm">
                     <div class="attempt-selector">
                         <label class="form-label">Training Attempt</label>
@@ -492,6 +492,7 @@
         let selectedPersona = null;
         let selectedAgentId = null;
         let selectedAttempt = 1;
+        let retellClient = null;
 
         // DOM elements
         const personaCards = document.querySelectorAll('.persona-card');
@@ -501,6 +502,35 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const statusMessage = document.getElementById('statusMessage');
         const attemptButtons = document.querySelectorAll('.attempt-button');
+
+        // Initialize Retell SDK when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Retell client
+            if (typeof RetellWebClient !== 'undefined') {
+                retellClient = new RetellWebClient();
+                
+                // Set up event listeners for call events
+                retellClient.on('call_started', () => {
+                    console.log('Call started successfully!');
+                    showStatus('Connected! You can start speaking.', 'success');
+                    loadingIndicator.classList.remove('visible');
+                });
+                
+                retellClient.on('call_ended', () => {
+                    console.log('Call ended');
+                    showStatus('Training session completed!', 'success');
+                    startButton.style.display = 'block';
+                    loadingIndicator.classList.remove('visible');
+                });
+                
+                retellClient.on('error', (error) => {
+                    console.error('Call error:', error);
+                    showStatus('Call error. Please try again.', 'error');
+                    startButton.style.display = 'block';
+                    loadingIndicator.classList.remove('visible');
+                });
+            }
+        });
 
         // Initialize attempt selection
         attemptButtons.forEach(button => {
@@ -522,26 +552,26 @@
                         existingIndicator.remove();
                     }
                 });
-                
+
                 // Select this card
                 card.classList.add('selected');
                 selectedPersona = card.dataset.persona;
                 selectedAgentId = card.dataset.agentId;
-                
+
                 // Add selection indicator to ONLY this card
                 const indicator = document.createElement('div');
                 indicator.className = 'selection-indicator';
                 indicator.textContent = '✓';
                 card.appendChild(indicator);
-                
+
                 // Show form with animation
                 formSection.classList.add('visible');
                 formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
+
                 // Update form title
                 const personaTitle = card.querySelector('.persona-title').textContent;
                 document.querySelector('.form-title').textContent = `Training with ${personaTitle} Employee`;
-                
+
                 // Enable start button if form is valid
                 checkFormValidity();
             });
@@ -558,14 +588,15 @@
             const company = document.getElementById('participantCompany').value.trim();
             const email = document.getElementById('participantEmail').value.trim();
             const accessCode = document.getElementById('accessCode').value.trim();
-            
+
             // Email format validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const isValidEmail = emailRegex.test(email);
-            
+
             const isValid = name && company && email && isValidEmail && accessCode && selectedPersona;
+
             startButton.disabled = !isValid;
-            
+
             // Show email error if email is entered but invalid
             const emailInput = document.getElementById('participantEmail');
             if (email && !isValidEmail) {
@@ -577,12 +608,19 @@
             }
         }
 
-        // Form submission
+        // UPDATED FORM SUBMISSION - NOW CALLS YOUR API
         trainingForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             if (!selectedPersona || !selectedAgentId) {
                 showStatus('Please select a personality type first.', 'error');
+                return;
+            }
+
+            // Check for placeholder agents
+            if (selectedAgentId.includes('placeholder')) {
+                const personaTitle = document.querySelector('.persona-card.selected .persona-title').textContent;
+                showStatus(`${personaTitle} personality is coming soon! Please try High Influence for now.`, 'error');
                 return;
             }
 
@@ -604,22 +642,37 @@
             };
 
             try {
-                // Check for placeholder agents
-                if (selectedAgentId.includes('placeholder')) {
-                    const personaTitle = document.querySelector('.persona-card.selected .persona-title').textContent;
-                    throw new Error(`${personaTitle} personality is coming soon! Please try High Influence for now.`);
+                // Call YOUR API endpoint (not Retell directly)
+                const response = await fetch('/api/create-call', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to create call');
                 }
 
-                // Simulate API calls for now (replace with real API when backend is ready)
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                showStatus('Training platform is ready! Full voice integration coming in next step.', 'success');
-                
+                // Start the actual voice call with the token from your API
+                if (retellClient && data.access_token) {
+                    await retellClient.startCall({
+                        accessToken: data.access_token,
+                        sampleRate: 24000,
+                        enableUpdate: true
+                    });
+                    
+                    showStatus('Connecting to your training partner...', 'success');
+                } else {
+                    throw new Error('Retell client not initialized');
+                }
+
             } catch (error) {
-                console.error('Training session error:', error);
-                showStatus(error.message || 'Unable to start training session. Please try again.', 'error');
-                
-                // Reset UI
+                console.error('Error starting training:', error);
+                showStatus(error.message || 'Failed to start training session. Please try again.', 'error');
                 startButton.style.display = 'block';
                 loadingIndicator.classList.remove('visible');
             }
@@ -643,13 +696,13 @@
                 const rect = card.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-                
+
                 if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
                     const centerX = rect.width / 2;
                     const centerY = rect.height / 2;
                     const rotateX = (y - centerY) / 20;
                     const rotateY = (centerX - x) / 20;
-                    
+
                     card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
                 } else {
                     card.style.transform = '';
