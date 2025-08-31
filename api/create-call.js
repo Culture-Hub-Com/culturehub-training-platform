@@ -2,17 +2,33 @@
 // This file runs on Vercel's servers and keeps your API key secure
 
 export default async function handler(req, res) {
-  // Enable CORS so your website can call this API
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Enable CORS with specific headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+  };
+
+  // Apply CORS headers to all responses
+  Object.keys(headers).forEach(key => {
+    res.setHeader(key, headers[key]);
+  });
 
   // Handle OPTIONS request (preflight)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Only allow POST requests
+  // Handle GET request with a friendly message
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      message: 'API endpoint is working! Use POST to create a call.',
+      status: 'ready' 
+    });
+  }
+
+  // Only allow POST requests for actual calls
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
