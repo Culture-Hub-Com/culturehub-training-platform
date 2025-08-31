@@ -1,34 +1,39 @@
+// pages/feedback.js
+import { useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
-import { useEffect, useRef, useState, useMemo } from "react";
 
-export default function Feedback() {
-  // ---------- STATE ----------
-  const [selectedPersona, setSelectedPersona] = useState(null); // "dominance" | "influence" | "steadiness" | "conscientiousness"
-  const [selectedAttempt, setSelectedAttempt] = useState(1); // 1 or 2
+export default function FeedbackPage() {
+  // ----- UI state -----
+  const [selectedAttempt, setSelectedAttempt] = useState(1);
+  const [selectedPersona, setSelectedPersona] = useState(null);
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
-  const [status, setStatus] = useState({ type: "", message: "", visible: false });
+
+  // ----- Call state & guards -----
   const [isStarting, setIsStarting] = useState(false);
   const [isInCall, setIsInCall] = useState(false);
-  const [formVisible, setFormVisible] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const lastStartRef = useRef(0);
 
-  // Retell client ref (so it persists without re-renders)
+  // ----- Status message -----
+  const [status, setStatus] = useState({ text: "", type: "" }); // type: "success" | "error" | ""
+
+  // ----- Retell SDK ref -----
   const retellRef = useRef(null);
 
-  // ---------- PERSONAS / AGENTS ----------
-  // Replace the agentId values with your real Retell agent IDs (the Influence one below is an example from your snippet)
-  const personaCards = useMemo(
-    () => ([
+  // Personas (keys must match what your backend / Retell expects)
+  const personas = useMemo(
+    () => [
       {
         key: "dominance",
         title: "High Dominance",
         description:
           "Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.",
         badge: "D",
-        colorClass: "persona-d",
-        agentId: "agent_placeholder_d"
+        gradClass: "persona-d",
+        agentId: "agent_placeholder_d", // placeholder (blocked by UI guard)
       },
       {
         key: "influence",
@@ -36,8 +41,8 @@ export default function Feedback() {
         description:
           "Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.",
         badge: "I",
-        colorClass: "persona-i",
-        agentId: "agent_b9c3042ecd4b4d5a7b64e7caee" // <- live example you had
+        gradClass: "persona-i",
+        agentId: "agent_b9c3042ecd4b4d5a7b64e7caee", // your working agent
       },
       {
         key: "steadiness",
@@ -45,8 +50,8 @@ export default function Feedback() {
         description:
           "Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.",
         badge: "S",
-        colorClass: "persona-s",
-        agentId: "agent_placeholder_s"
+        gradClass: "persona-s",
+        agentId: "agent_placeholder_s",
       },
       {
         key: "conscientiousness",
@@ -54,100 +59,103 @@ export default function Feedback() {
         description:
           "Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.",
         badge: "C",
-        colorClass: "persona-c",
-        agentId: "agent_placeholder_c"
-      }
-    ]),
+        gradClass: "persona-c",
+        agentId: "agent_placeholder_c",
+      },
+    ],
     []
   );
 
-  // ---------- HELPERS ----------
-  function showStatus(message, type = "success") {
-    setStatus({ message, type: type === "error" ? "status-error" : "status-success", visible: true });
+  // Form validity
+  const formValid = useMemo(() => {
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    return (
+      !!selectedPersona &&
+      name.trim() &&
+      company.trim() &&
+      email.trim() &&
+      emailOk &&
+      accessCode.trim()
+    );
+  }, [selectedPersona, name, company, email, accessCode]);
+
+  // Helper: show/hide status
+  function showStatus(text, type) {
+    setStatus({ text, type }); // type = "success" | "error"
   }
   function hideStatus() {
-    setStatus(s => ({ ...s, visible: false }));
+    setStatus({ text: "", type: "" });
   }
 
-  const selectedCard = useMemo(
-    () => personaCards.find(p => p.key === selectedPersona),
-    [selectedPersona, personaCards]
-  );
-
-  const formValid =
-    !!selectedPersona &&
-    !!name.trim() &&
-    !!company.trim() &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
-    !!accessCode.trim();
-
-  // ---------- INIT RETELL (dynamic import, client-only) ----------
+  // Load Retell SDK (browser-only)
   useEffect(() => {
     let mounted = true;
-
-    async function load() {
+    (async () => {
       try {
-        const mod = await import("retell-client-js-sdk");
-        if (!mounted) return;
+        if (typeof window === "undefined") return;
+        // Load the ESM build directly in the browser
+        const mod = await import(
+          "https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.js"
+        );
+        if (!mounted || !mod?.RetellWebClient) return;
 
-        // Some builds expose default, some named; try both safely
-        const RetellCtor = mod?.RetellWebClient || mod?.default?.RetellWebClient || mod?.default;
-        if (!RetellCtor) {
-          console.error("Retell SDK failed to resolve constructor from module:", Object.keys(mod || {}));
-          return;
-        }
+        const client = new mod.RetellWebClient();
+        retellRef.current = client;
 
-        retellRef.current = new RetellCtor();
-
-        // Attach BOTH event name styles to be future-proof
-        retellRef.current.on?.("call-started", () => setIsInCall(true));
-        retellRef.current.on?.("call_ended", () => setIsInCall(false));
-        retellRef.current.on?.("call-ended", () => setIsInCall(false));
-        retellRef.current.on?.("error", (e) => {
-          console.error("Retell SDK error:", e);
-          showStatus(e?.message || "Retell error", "error");
+        client.on("call_started", () => {
+          // Note: the ESM build emits snake_case events
+          console.log("Retell: call_started");
+        });
+        client.on("call_ended", () => {
+          console.log("Retell: call_ended");
+          setIsInCall(false);
+        });
+        client.on("error", (e) => {
+          console.error("Retell error:", e);
+          showStatus(e?.message || "Voice client error", "error");
         });
 
+        console.log("Retell SDK initialised");
       } catch (e) {
-        console.error("Failed to dynamically import Retell SDK:", e);
-        showStatus("Failed to load voice client. Please refresh and try again.", "error");
+        console.error("Failed to load Retell SDK:", e);
+        showStatus("Failed to initialise voice client.", "error");
       }
-    }
-
-    load();
+    })();
     return () => {
       mounted = false;
-      // no explicit dispose in SDK; stopCall will be invoked from our end button
     };
   }, []);
 
-  // ---------- UI HANDLERS ----------
-  function handlePersonaClick(key) {
-    setSelectedPersona(key);
-    setFormVisible(true);
-    hideStatus();
-  }
-
+  // Start call
   async function handleStart(e) {
     e.preventDefault();
-    if (!formValid) return;
-    if (isStarting || isInCall) return;
 
-    const persona = selectedCard;
+    // Guards to prevent accidental restarts / double-submits
+    const now = Date.now();
+    if (isEnding || isStarting || isInCall) return;
+    if (now - lastStartRef.current < 1000) return; // throttle
+    lastStartRef.current = now;
+
+    if (!formValid) return;
+
+    const persona = selectedPersona;
     if (!persona) {
       showStatus("Please select a personality type first.", "error");
       return;
     }
     if ((persona.agentId || "").includes("placeholder")) {
-      showStatus(`${persona.title} personality is coming soon! Please try High Influence for now.`, "error");
+      showStatus(
+        `${persona.title} personality is coming soon! Please try High Influence for now.`,
+        "error"
+      );
       return;
     }
 
-    setIsStarting(true);
     hideStatus();
+    setIsStarting(true);
 
     try {
-      // 1) Create call on our server
+      // Create call via your serverless function
       const resp = await fetch("/api/create-call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,8 +167,8 @@ export default function Feedback() {
           persona: persona.key,
           agentId: persona.agentId,
           scenario: "feedback",
-          attempt: selectedAttempt
-        })
+          attempt: selectedAttempt,
+        }),
       });
 
       const data = await resp.json();
@@ -171,36 +179,47 @@ export default function Feedback() {
       if (!data?.access_token) {
         throw new Error("No access token received from server");
       }
-
-      // 2) Start Retell call
       if (!retellRef.current?.startCall) {
         throw new Error("Voice client not ready");
       }
 
       await retellRef.current.startCall({ accessToken: data.access_token });
+
       setIsInCall(true);
       showStatus("Connected! You can start speaking.", "success");
     } catch (err) {
       console.error("Error starting training:", err);
-      showStatus(err?.message || "Failed to start training session. Please try again.", "error");
+      showStatus(
+        err?.message || "Failed to start training session. Please try again.",
+        "error"
+      );
       setIsInCall(false);
     } finally {
       setIsStarting(false);
     }
   }
 
+  // End call
   async function handleEnd() {
     try {
+      setIsEnding(true);
       await retellRef.current?.stopCall?.();
     } catch (e) {
       console.error("Error stopping call:", e);
     } finally {
       setIsInCall(false);
       showStatus("Training session completed!", "success");
+      // small delay to avoid immediate restart by stray Enter/bubble
+      setTimeout(() => setIsEnding(false), 800);
+      lastStartRef.current = Date.now();
     }
   }
 
-  // ---------- RENDER ----------
+  // Selected persona derived content
+  const titleForForm = selectedPersona
+    ? `Training with ${selectedPersona.title} Employee`
+    : "Ready to Start Your Training";
+
   return (
     <>
       <Head>
@@ -211,7 +230,7 @@ export default function Feedback() {
         />
       </Head>
 
-      {/* Floating color swirls */}
+      {/* Floating colour swirls */}
       <div className="color-swirl swirl-1" />
       <div className="color-swirl swirl-2" />
       <div className="color-swirl swirl-3" />
@@ -224,41 +243,51 @@ export default function Feedback() {
           </div>
           <h1 className="main-title">Feedback Scenario Training</h1>
           <p className="subtitle">
-            Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.
+            Practice giving constructive feedback using the SBI framework. Choose your
+            conversation partner&apos;s personality type below.
           </p>
         </header>
 
         <main>
-          {/* Persona Grid */}
-          <section className="personas-grid">
-            {personaCards.map((p) => {
-              const isSelected = selectedPersona === p.key;
+          {/* Persona grid */}
+          <section className="personas-grid" id="personasGrid">
+            {personas.map((p) => {
+              const selected = selectedPersona?.key === p.key;
               return (
                 <div
                   key={p.key}
-                  className={`persona-card ${isSelected ? "selected" : ""}`}
-                  onClick={() => handlePersonaClick(p.key)}
+                  className={`persona-card ${selected ? "selected" : ""}`}
+                  onClick={() => {
+                    setSelectedPersona(p);
+                    // Vanilla haptic: transient status clear when switching card
+                    hideStatus();
+                  }}
                 >
                   <div className="card-glow" />
-                  <div className={`persona-icon ${p.colorClass}`}>{p.badge}</div>
+                  <div className={`persona-icon ${p.gradClass}`}>{p.badge}</div>
                   <h3 className="persona-title">{p.title}</h3>
                   <p className="persona-description">{p.description}</p>
-                  {isSelected && <div className="selection-indicator">✓</div>}
+                  {selected && <div className="selection-indicator">✓</div>}
                 </div>
               );
             })}
           </section>
 
-          {/* Form Section */}
-          <section className="form-section" style={{ opacity: formVisible ? 1 : 0.75 }}>
+          {/* Form */}
+          <section className="form-section" id="participantForm">
             <div className="form-glow" />
-            <h3 className="form-title">
-              {selectedCard ? `Training with ${selectedCard.title} Employee` : "Ready to Start Your Training"}
-            </h3>
+            <h3 className="form-title">{titleForForm}</h3>
 
-            {/* The form remains interactive even if not yet selected, but Start is disabled until valid */}
-            <form onSubmit={handleStart}>
-              {/* Attempt selector */}
+            <form
+              onSubmit={handleStart}
+              onKeyDown={(e) => {
+                // Prevent Enter from re-submitting while a call is active or ending
+                if ((isInCall || isEnding) && e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+            >
               <div className="attempt-selector">
                 <label className="form-label">Training Attempt</label>
                 <div className="attempt-buttons">
@@ -281,9 +310,10 @@ export default function Feedback() {
                 </div>
               </div>
 
-              {/* Name */}
               <div className="form-group">
-                <label className="form-label" htmlFor="participantName">Your Name</label>
+                <label className="form-label" htmlFor="participantName">
+                  Your Name
+                </label>
                 <input
                   id="participantName"
                   type="text"
@@ -291,12 +321,14 @@ export default function Feedback() {
                   placeholder="Enter your full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
                 />
               </div>
 
-              {/* Company */}
               <div className="form-group">
-                <label className="form-label" htmlFor="participantCompany">Company</label>
+                <label className="form-label" htmlFor="participantCompany">
+                  Company
+                </label>
                 <input
                   id="participantCompany"
                   type="text"
@@ -304,12 +336,14 @@ export default function Feedback() {
                   placeholder="Your company name"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
+                  required
                 />
               </div>
 
-              {/* Email */}
               <div className="form-group">
-                <label className="form-label" htmlFor="participantEmail">Email Address</label>
+                <label className="form-label" htmlFor="participantEmail">
+                  Email Address
+                </label>
                 <input
                   id="participantEmail"
                   type="email"
@@ -317,12 +351,14 @@ export default function Feedback() {
                   placeholder="your.email@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
 
-              {/* Access Code */}
               <div className="form-group">
-                <label className="form-label" htmlFor="accessCode">Access Code</label>
+                <label className="form-label" htmlFor="accessCode">
+                  Access Code
+                </label>
                 <input
                   id="accessCode"
                   type="text"
@@ -330,16 +366,16 @@ export default function Feedback() {
                   placeholder="Enter your training access code"
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
+                  required
                 />
               </div>
 
-              {/* Start / End Buttons */}
               {!isInCall ? (
                 <button
                   type="submit"
                   className="start-button"
-                  disabled={!formValid || isStarting}
-                  aria-disabled={!formValid || isStarting}
+                  disabled={!formValid || isStarting || isEnding}
+                  aria-disabled={!formValid || isStarting || isEnding}
                 >
                   {isStarting ? "Connecting..." : "Start Voice Training Session"}
                   <span className="button-shine" />
@@ -350,37 +386,47 @@ export default function Feedback() {
                   className="start-button"
                   style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)" }}
                   onClick={handleEnd}
+                  onMouseDown={(e) => {
+                    // belt & braces: don’t let the button behave like a submit in any browser
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                 >
                   End Training Session
                 </button>
               )}
             </form>
 
-            {/* Loading note (we keep visual minimal; main button shows state) */}
             <div className={`loading ${isStarting ? "visible" : ""}`}>
               <div className="spinner" />
               <p>Connecting to your training session...</p>
             </div>
 
-            {/* Status */}
-            {status.visible && (
-              <div className={`status-message ${status.type}`} role="status" aria-live="polite">
-                {status.message}
+            {status.text ? (
+              <div
+                className={`status-message ${
+                  status.type === "success" ? "status-success" : "status-error"
+                }`}
+              >
+                {status.text}
               </div>
-            )}
+            ) : null}
           </section>
-        </main>
 
-        {/* Footer */}
-        <footer className="footer">
-          <p className="copyright">© 2025 CultureHub Limited. All rights reserved.</p>
-        </footer>
+          {/* Footer */}
+          <footer className="footer">
+            <p className="copyright">© 2025 CultureHub Limited. All rights reserved.</p>
+          </footer>
+        </main>
       </div>
 
-      {/* ---------- GLOBAL STYLES (Claude's design, carefully merged) ---------- */}
-      <style global jsx>{`
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
+      {/* Global styles (beauty mode on) */}
+      <style jsx global>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
         body {
           font-family: 'Poppins', sans-serif;
           background: #000000;
@@ -388,13 +434,22 @@ export default function Feedback() {
           color: white;
           overflow-x: hidden;
           position: relative;
-          background-image:
-            radial-gradient(circle at 20% 50%, rgba(120, 91, 246, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(78, 110, 243, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(248, 91, 246, 0.1) 0%, transparent 50%);
+          background-image: radial-gradient(
+              circle at 20% 50%,
+              rgba(120, 91, 246, 0.1) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 80% 80%,
+              rgba(78, 110, 243, 0.1) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 40% 20%,
+              rgba(248, 91, 246, 0.1) 0%,
+              transparent 50%
+            );
         }
-
-        /* Floating color swirls */
         .color-swirl {
           position: fixed;
           border-radius: 50%;
@@ -405,41 +460,126 @@ export default function Feedback() {
           z-index: 0;
           mix-blend-mode: screen;
         }
-        .swirl-1 { width: 400px; height: 400px; background: linear-gradient(135deg, #02f5ec, #349fef); top: -10%; left: -10%; animation-delay: 0s; }
-        .swirl-2 { width: 300px; height: 300px; background: linear-gradient(135deg, #349fef, #f95bf6); top: 60%; right: -5%; animation-delay: -7s; }
-        .swirl-3 { width: 350px; height: 350px; background: linear-gradient(135deg, #02f5ec, #f95bf6); bottom: -10%; left: 30%; animation-delay: -14s; }
-        .swirl-4 { width: 250px; height: 250px; background: linear-gradient(135deg, #fbbf24, #f59e0b); top: 30%; left: 50%; animation-delay: -21s; }
-
+        .swirl-1 {
+          width: 400px;
+          height: 400px;
+          background: linear-gradient(135deg, #02f5ec, #349fef);
+          top: -10%;
+          left: -10%;
+          animation-delay: 0s;
+        }
+        .swirl-2 {
+          width: 300px;
+          height: 300px;
+          background: linear-gradient(135deg, #349fef, #f95bf6);
+          top: 60%;
+          right: -5%;
+          animation-delay: -7s;
+        }
+        .swirl-3 {
+          width: 350px;
+          height: 350px;
+          background: linear-gradient(135deg, #02f5ec, #f95bf6);
+          bottom: -10%;
+          left: 30%;
+          animation-delay: -14s;
+        }
+        .swirl-4 {
+          width: 250px;
+          height: 250px;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          top: 30%;
+          left: 50%;
+          animation-delay: -21s;
+        }
         @keyframes float {
-          0%, 100% { transform: translate(0px, 0px) scale(1) rotate(0deg); }
-          25% { transform: translate(30px, -30px) scale(1.1) rotate(90deg); }
-          50% { transform: translate(-20px, 20px) scale(0.9) rotate(180deg); }
-          75% { transform: translate(40px, -10px) scale(1.05) rotate(270deg); }
+          0%,
+          100% {
+            transform: translate(0px, 0px) scale(1) rotate(0deg);
+          }
+          25% {
+            transform: translate(30px, -30px) scale(1.1) rotate(90deg);
+          }
+          50% {
+            transform: translate(-20px, 20px) scale(0.9) rotate(180deg);
+          }
+          75% {
+            transform: translate(40px, -10px) scale(1.05) rotate(270deg);
+          }
         }
-
-        .container { position: relative; z-index: 10; max-width: 1200px; margin: 0 auto; padding: 40px 20px; min-height: 100vh; }
-
-        .header { text-align: center; margin-bottom: 60px; animation: fadeInDown 0.8s ease-out; }
-        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
-        .logo-image { max-width: 350px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(248, 91, 246, 0.3)); }
-
-        .main-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 15px; color: white; text-shadow: 0 2px 20px rgba(248, 91, 246, 0.3); }
-
+        .container {
+          position: relative;
+          z-index: 10;
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 40px 20px;
+          min-height: 100vh;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 60px;
+          animation: fadeInDown 0.8s ease-out;
+        }
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .logo-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 30px;
+        }
+        .logo-image {
+          max-width: 350px;
+          height: auto;
+          margin-bottom: 20px;
+          filter: drop-shadow(0 0 20px rgba(248, 91, 246, 0.3));
+        }
+        .main-title {
+          font-size: 2.5rem;
+          font-weight: 600;
+          margin-bottom: 15px;
+          color: white;
+          text-shadow: 0 2px 20px rgba(248, 91, 246, 0.3);
+        }
         .subtitle {
-          font-size: 1.25rem; color: rgba(255, 255, 255, 0.85);
-          max-width: 600px; margin: 0 auto 50px; line-height: 1.7; font-weight: 300;
+          font-size: 1.25rem;
+          color: rgba(255, 255, 255, 0.85);
+          max-width: 600px;
+          margin: 0 auto 50px;
+          line-height: 1.7;
+          font-weight: 300;
         }
-
         .personas-grid {
-          display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 35px; margin-bottom: 50px; animation: fadeInUp 0.8s ease-out;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 35px;
+          margin-bottom: 50px;
+          animation: fadeInUp 0.8s ease-out;
         }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
         .persona-card {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.05)
+          );
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 24px;
@@ -452,162 +592,408 @@ export default function Feedback() {
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         .card-glow {
-          position: absolute; top: 50%; left: 50%; width: 150%; height: 150%;
-          background: radial-gradient(circle, rgba(248, 91, 246, 0.2), transparent 70%);
-          transform: translate(-50%, -50%); opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 150%;
+          height: 150%;
+          background: radial-gradient(
+            circle,
+            rgba(248, 91, 246, 0.2),
+            transparent 70%
+          );
+          transform: translate(-50%, -50%);
+          opacity: 0;
+          transition: opacity 0.4s ease;
+          pointer-events: none;
         }
-        .persona-card:hover .card-glow { opacity: 1; }
+        .persona-card:hover .card-glow {
+          opacity: 1;
+        }
         .persona-card::before {
-          content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.15),
+            transparent
+          );
           transition: left 0.6s ease;
         }
-        .persona-card:hover::before { left: 100%; }
+        .persona-card:hover::before {
+          left: 100%;
+        }
         .persona-card:hover {
           transform: translateY(-8px) scale(1.02);
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.15),
+            rgba(255, 255, 255, 0.08)
+          );
           border-color: rgba(255, 255, 255, 0.25);
           box-shadow: 0 12px 40px rgba(248, 91, 246, 0.2);
         }
         .persona-card.selected {
-          background: linear-gradient(135deg, rgba(248, 91, 246, 0.25), rgba(198, 34, 240, 0.15));
-          border-color: #f95bf6; transform: scale(1.03);
+          background: linear-gradient(
+            135deg,
+            rgba(248, 91, 246, 0.25),
+            rgba(198, 34, 240, 0.15)
+          );
+          border-color: #f95bf6;
+          transform: scale(1.03);
           box-shadow: 0 12px 40px rgba(248, 91, 246, 0.3);
         }
-
         .persona-icon {
-          width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 25px;
-          display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700;
-          color: white; position: relative; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+          width: 90px;
+          height: 90px;
+          border-radius: 50%;
+          margin: 0 auto 25px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: white;
+          position: relative;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
           transition: transform 0.3s ease;
         }
-        .persona-card:hover .persona-icon { transform: scale(1.1) rotate(5deg); }
-        .persona-d { background: linear-gradient(135deg, #dc2626, #b91c1c); box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4); }
-        .persona-i { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4); }
-        .persona-s { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4); }
-        .persona-c { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4); }
-
-        .persona-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.5px; }
-        .persona-description { font-size: 0.95rem; color: rgba(255, 255, 255, 0.75); line-height: 1.7; font-weight: 300; }
-
+        .persona-card:hover .persona-icon {
+          transform: scale(1.1) rotate(5deg);
+        }
+        .persona-d {
+          background: linear-gradient(135deg, #dc2626, #b91c1c);
+          box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);
+        }
+        .persona-i {
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4);
+        }
+        .persona-s {
+          background: linear-gradient(135deg, #10b981, #059669);
+          box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+        .persona-c {
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+        .persona-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 12px;
+          letter-spacing: -0.5px;
+        }
+        .persona-description {
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.75);
+          line-height: 1.7;
+          font-weight: 300;
+        }
         .selection-indicator {
-          position: absolute; top: 20px; right: 20px; width: 28px; height: 28px;
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          width: 28px;
+          height: 28px;
           background: linear-gradient(135deg, #02f5ec, #f95bf6);
           border-radius: 50%;
-          display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: bold;
           box-shadow: 0 4px 12px rgba(248, 91, 246, 0.5);
           animation: pulse 2s infinite;
         }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.9; } }
-
+        @keyframes pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.9;
+          }
+        }
         .form-section {
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.08),
+            rgba(255, 255, 255, 0.03)
+          );
           backdrop-filter: blur(30px);
           border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 28px;
-          padding: 45px; max-width: 500px; margin: 0 auto;
+          padding: 45px;
+          max-width: 500px;
+          margin: 0 auto;
           transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative; overflow: hidden;
+          position: relative;
+          overflow: hidden;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
         .form-glow {
-          position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-          background: radial-gradient(circle, rgba(2, 245, 236, 0.1), transparent 40%);
-          animation: rotate 20s linear infinite; pointer-events: none;
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(
+            circle,
+            rgba(2, 245, 236, 0.1),
+            transparent 40%
+          );
+          animation: rotate 20s linear infinite;
+          pointer-events: none;
         }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
+        @keyframes rotate {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
         .form-title {
-          font-size: 1.9rem; font-weight: 600; text-align: center; margin-bottom: 35px;
+          font-size: 1.9rem;
+          font-weight: 600;
+          text-align: center;
+          margin-bottom: 35px;
           background: linear-gradient(135deg, #02f5ec, #349fef, #f95bf6);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-
-        .form-group { margin-bottom: 28px; }
-        .form-label { display: block; font-size: 0.95rem; font-weight: 500; margin-bottom: 10px; color: rgba(255, 255, 255, 0.95); letter-spacing: 0.5px; }
+        .form-group {
+          margin-bottom: 28px;
+        }
+        .form-label {
+          display: block;
+          font-size: 0.95rem;
+          font-weight: 500;
+          margin-bottom: 10px;
+          color: rgba(255, 255, 255, 0.95);
+          letter-spacing: 0.5px;
+        }
         .form-input {
-          width: 100%; padding: 16px 20px; border: 2px solid rgba(255, 255, 255, 0.15);
-          border-radius: 14px; background: rgba(255, 255, 255, 0.06); color: white;
-          font-size: 1rem; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; font-weight: 400;
+          width: 100%;
+          padding: 16px 20px;
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.06);
+          color: white;
+          font-size: 1rem;
+          font-family: 'Poppins', sans-serif;
+          transition: all 0.3s ease;
+          font-weight: 400;
         }
         .form-input:focus {
-          outline: none; border-color: #02f5ec; background: rgba(255, 255, 255, 0.1);
+          outline: none;
+          border-color: #02f5ec;
+          background: rgba(255, 255, 255, 0.1);
           box-shadow: 0 0 0 4px rgba(2, 245, 236, 0.15);
         }
-        .form-input::placeholder { color: rgba(255, 255, 255, 0.4); }
-
-        .attempt-selector { margin-bottom: 30px; }
-        .attempt-buttons { display: flex; gap: 15px; justify-content: center; }
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .attempt-selector {
+          margin-bottom: 30px;
+        }
+        .attempt-buttons {
+          display: flex;
+          gap: 15px;
+          justify-content: center;
+        }
         .attempt-button {
-          flex: 1; padding: 15px 20px; border: 2px solid rgba(255, 255, 255, 0.15);
-          border-radius: 12px; background: rgba(255, 255, 255, 0.05); color: white;
-          cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins', sans-serif; font-size: 0.9rem;
-          display: flex; flex-direction: column; align-items: center; gap: 5px;
+          flex: 1;
+          padding: 15px 20px;
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.05);
+          color: white;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-family: 'Poppins', sans-serif;
+          font-size: 0.9rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
         }
         .attempt-number {
-          font-size: 1.5rem; font-weight: 700;
+          font-size: 1.5rem;
+          font-weight: 700;
           background: linear-gradient(135deg, #02f5ec, #349fef, #f95bf6);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-        .attempt-text { font-size: 0.85rem; color: rgba(255, 255, 255, 0.7); }
+        .attempt-text {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
         .attempt-button:hover {
-          background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25); transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
         }
         .attempt-button.selected {
-          background: linear-gradient(135deg, rgba(2, 245, 236, 0.2), rgba(249, 91, 246, 0.15));
-          border-color: #02f5ec; box-shadow: 0 4px 20px rgba(2, 245, 236, 0.3);
+          background: linear-gradient(
+            135deg,
+            rgba(2, 245, 236, 0.2),
+            rgba(249, 91, 246, 0.15)
+          );
+          border-color: #02f5ec;
+          box-shadow: 0 4px 20px rgba(2, 245, 236, 0.3);
         }
-
         .start-button {
-          width: 100%; padding: 20px;
+          width: 100%;
+          padding: 20px;
           background: linear-gradient(135deg, #02f5ec, #349fef, #f95bf6);
-          border: none; border-radius: 14px; color: white; font-size: 1.15rem; font-weight: 600; font-family: 'Poppins', sans-serif;
-          cursor: pointer; transition: all 0.3s ease; margin-top: 15px; position: relative; overflow: hidden;
-          box-shadow: 0 8px 32px rgba(2, 245, 236, 0.4); text-transform: uppercase; letter-spacing: 1px;
+          border: none;
+          border-radius: 14px;
+          color: white;
+          font-size: 1.15rem;
+          font-weight: 600;
+          font-family: 'Poppins', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 15px;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 8px 32px rgba(2, 245, 236, 0.4);
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
         .button-shine {
-          position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
           transition: left 0.5s ease;
         }
-        .start-button:hover .button-shine { left: 100%; }
-        .start-button:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(2, 245, 236, 0.5); }
-        .start-button[disabled] {
-          background: rgba(255, 255, 255, 0.1); cursor: not-allowed; transform: none; box-shadow: none; text-transform: none;
+        .start-button:hover .button-shine {
+          left: 100%;
         }
-
-        .loading { text-align: center; padding: 30px; display: none; }
-        .loading.visible { display: block; }
+        .start-button:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 40px rgba(2, 245, 236, 0.5);
+        }
+        .start-button:disabled {
+          background: rgba(255, 255, 255, 0.1);
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+          text-transform: none;
+        }
+        .loading {
+          text-align: center;
+          padding: 30px;
+          display: none;
+        }
+        .loading.visible {
+          display: block;
+        }
         .spinner {
-          border: 3px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
-          border-top: 3px solid #02f5ec; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;
+          border: 3px solid rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+          border-top: 3px solid #02f5ec;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 20px;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
         .status-message {
-          text-align: center; padding: 18px; border-radius: 12px; margin-top: 25px; font-weight: 500;
-          backdrop-filter: blur(10px); animation: fadeIn 0.3s ease;
+          text-align: center;
+          padding: 18px;
+          border-radius: 12px;
+          margin-top: 25px;
+          font-weight: 500;
+          backdrop-filter: blur(10px);
+          animation: fadeIn 0.3s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
         .status-error {
-          background: linear-gradient(135deg, rgba(255, 99, 71, 0.2), rgba(220, 38, 38, 0.15));
-          border: 1px solid rgba(255, 99, 71, 0.4); color: #ffcccb;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 99, 71, 0.2),
+            rgba(220, 38, 38, 0.15)
+          );
+          border: 1px solid rgba(255, 99, 71, 0.4);
+          color: #ffcccb;
         }
         .status-success {
-          background: linear-gradient(135deg, rgba(2, 245, 236, 0.2), rgba(16, 185, 129, 0.15));
-          border: 1px solid rgba(2, 245, 236, 0.4); color: #02f5ec;
+          background: linear-gradient(
+            135deg,
+            rgba(2, 245, 236, 0.2),
+            rgba(16, 185, 129, 0.15)
+          );
+          border: 1px solid rgba(2, 245, 236, 0.4);
+          color: #02f5ec;
         }
-
-        .footer { text-align: center; padding: 40px 20px; margin-top: 80px; border-top: 1px solid rgba(255, 255, 255, 0.1); animation: fadeIn 0.8s ease-out; }
-        .copyright { font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); font-weight: 300; letter-spacing: 0.5px; }
-
+        .footer {
+          text-align: center;
+          padding: 40px 20px;
+          margin-top: 80px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          animation: fadeIn 0.8s ease-out;
+        }
+        .copyright {
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 300;
+          letter-spacing: 0.5px;
+        }
         @media (max-width: 768px) {
-          .container { padding: 20px 15px; }
-          .main-title { font-size: 2rem; }
-          .personas-grid { grid-template-columns: 1fr; gap: 25px; }
-          .form-section { padding: 35px 25px; }
-          .attempt-buttons { flex-direction: column; }
-          .footer { margin-top: 60px; }
+          .container {
+            padding: 20px 15px;
+          }
+          .main-title {
+            font-size: 2rem;
+          }
+          .personas-grid {
+            grid-template-columns: 1fr;
+            gap: 25px;
+          }
+          .form-section {
+            padding: 35px 25px;
+          }
+          .attempt-buttons {
+            flex-direction: column;
+          }
+          .footer {
+            margin-top: 60px;
+          }
         }
       `}</style>
     </>
