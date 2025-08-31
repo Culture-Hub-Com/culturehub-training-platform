@@ -1,47 +1,36 @@
 // api/create-call.js
-// This file runs on Vercel's servers and keeps your API key secure
+// Clean, simple Vercel endpoint for Retell
 
 export default async function handler(req, res) {
-  // Enable CORS with specific headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
-  };
+  // CORS headers (remove * in production if same-origin)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Apply CORS headers to all responses
-  Object.keys(headers).forEach(key => {
-    res.setHeader(key, headers[key]);
-  });
-
-  // Handle OPTIONS request (preflight)
+  // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Handle GET request with a friendly message
+  // GET for testing
   if (req.method === 'GET') {
     return res.status(200).json({ 
-      message: 'API endpoint is working! Use POST to create a call.',
+      message: 'API endpoint is working!',
       status: 'ready' 
     });
   }
 
-  // Only allow POST requests for actual calls
+  // Only POST for actual calls
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Get the data from your form
     const { name, company, email, accessCode, agentId, persona, attempt } = req.body;
+    
+    console.log(`Call requested by ${name} from ${company} with code: ${accessCode}`);
 
-    // TESTING MODE: Accept ANY access code
-    // Just log it so we can see what people are using
-    console.log(`Training session requested by ${name} from ${company} with code: ${accessCode}`);
-
-    // Call Retell API to create the web call
+    // Call Retell API
     const retellResponse = await fetch('https://api.retellai.com/v2/create-web-call', {
       method: 'POST',
       headers: {
@@ -61,27 +50,29 @@ export default async function handler(req, res) {
       })
     });
 
+    const responseText = await retellResponse.text();
+    
     if (!retellResponse.ok) {
-      const error = await retellResponse.text();
-      console.error('Retell API error:', error);
-      throw new Error('Failed to create call with Retell');
+      console.error('Retell error:', retellResponse.status, responseText);
+      return res.status(retellResponse.status).json({ 
+        error: true,
+        status: retellResponse.status,
+        detail: responseText
+      });
     }
 
-    const data = await retellResponse.json();
-    console.log('Retell response:', data);
-
-    // Send back the access token to start the call
-    // IMPORTANT: The field is called "access_token" in the response
+    const data = JSON.parse(responseText);
+    
+    // Return exactly what Retell gives us
     res.status(200).json({
-      success: true,
       access_token: data.access_token,
       call_id: data.call_id
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Server error:', error);
     res.status(500).json({ 
-      error: 'Failed to start training session',
+      error: true,
       message: error.message 
     });
   }
