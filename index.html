@@ -1,742 +1,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Training</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #000000;
-            min-height: 100vh;
-            color: white;
-            overflow-x: hidden;
-            position: relative;
-        }
-
-        /* Floating color swirls */
-        .color-swirl {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(60px);
-            opacity: 0.4;
-            animation: float 20s infinite ease-in-out;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .swirl-1 {
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(248, 91, 246, 0.3), transparent);
-            top: 10%;
-            left: 10%;
-            animation-delay: 0s;
-        }
-
-        .swirl-2 {
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(78, 110, 243, 0.25), transparent);
-            top: 50%;
-            right: 15%;
-            animation-delay: -7s;
-        }
-
-        .swirl-3 {
-            width: 250px;
-            height: 250px;
-            background: radial-gradient(circle, rgba(0, 247, 235, 0.2), transparent);
-            bottom: 20%;
-            left: 20%;
-            animation-delay: -14s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) translateX(0px) scale(1); }
-            25% { transform: translateY(-20px) translateX(10px) scale(1.1); }
-            50% { transform: translateY(-10px) translateX(-10px) scale(0.9); }
-            75% { transform: translateY(-30px) translateX(5px) scale(1.05); }
-        }
-
-        .container {
-            position: relative;
-            z-index: 10;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            min-height: 100vh;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-
-        .logo-image {
-            max-width: 350px;
-            height: auto;
-            margin-bottom: 40px;
-        }
-
-        .main-title {
-            font-size: 2.5rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.8);
-            max-width: 600px;
-            margin: 0 auto 50px;
-            line-height: 1.6;
-        }
-
-        .personas-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .persona-card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .persona-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .persona-card:hover::before {
-            left: 100%;
-        }
-
-        .persona-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .persona-card.selected {
-            background: rgba(248, 91, 246, 0.2);
-            border-color: #f85bf6;
-            transform: scale(1.02);
-        }
-
-        .persona-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: white;
-            position: relative;
-        }
-
-        .persona-d { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-        .persona-i { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-        .persona-s { background: linear-gradient(135deg, #10b981, #059669); }
-        .persona-c { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-
-        .persona-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .persona-description {
-            font-size: 0.95rem;
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.6;
-        }
-
-        .selection-indicator {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 24px;
-            height: 24px;
-            background: #f85bf6;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .form-section {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
-            margin: 0 auto;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease;
-        }
-
-        .form-section.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .form-title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-            font-size: 1rem;
-            font-family: 'Poppins', sans-serif;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #f85bf6;
-            background: rgba(255, 255, 255, 0.12);
-            box-shadow: 0 0 0 3px rgba(248, 91, 246, 0.2);
-        }
-
-        .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .start-button {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #f85bf6, #c622f0);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .start-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(248, 91, 246, 0.3);
-        }
-
-        .start-button:disabled {
-            background: rgba(255, 255, 255, 0.2);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .status-message {
-            text-align: center;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            font-weight: 500;
-        }
-
-        .status-error {
-            background: rgba(255, 99, 71, 0.2);
-            border: 1px solid rgba(255, 99, 71, 0.5);
-            color: #ffcccb;
-        }
-
-        .status-success {
-            background: rgba(0, 247, 235, 0.2);
-            border: 1px solid rgba(0, 247, 235, 0.5);
-            color: #00f7eb;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .loading.visible {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 3px solid #f85bf6;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .attempt-selector {
-            margin-bottom: 25px;
-        }
-
-        .attempt-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .attempt-button {
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.9rem;
-        }
-
-        .attempt-button.selected {
-            background: linear-gradient(135deg, #f85bf6, #c622f0);
-            border-color: #f85bf6;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px 15px;
-            }
-
-            .main-title {
-                font-size: 2rem;
-            }
-
-            .personas-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .form-section {
-                padding: 30px 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Feedback Training</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Poppins',sans-serif;background:#000;min-height:100vh;color:#fff;overflow-x:hidden;position:relative}
+    .color-swirl{position:fixed;border-radius:50%;filter:blur(60px);opacity:.4;animation:float 20s infinite ease-in-out;pointer-events:none;z-index:0}
+    .swirl-1{width:300px;height:300px;background:radial-gradient(circle,rgba(248,91,246,.3),transparent);top:10%;left:10%}
+    .swirl-2{width:200px;height:200px;background:radial-gradient(circle,rgba(78,110,243,.25),transparent);top:50%;right:15%;animation-delay:-7s}
+    .swirl-3{width:250px;height:250px;background:radial-gradient(circle,rgba(0,247,235,.2),transparent);bottom:20%;left:20%;animation-delay:-14s}
+    @keyframes float{0%,100%{transform:translateY(0) translateX(0) scale(1)}25%{transform:translateY(-20px) translateX(10px) scale(1.1)}50%{transform:translateY(-10px) translateX(-10px) scale(.9)}75%{transform:translateY(-30px) translateX(5px) scale(1.05)}}
+    .container{position:relative;z-index:10;max-width:1200px;margin:0 auto;padding:40px 20px;min-height:100vh}
+    .header{text-align:center;margin-bottom:60px}
+    .logo-container{display:flex;align-items:center;justify-content:center;margin-bottom:30px}
+    .logo-image{max-width:350px;height:auto;margin-bottom:40px}
+    .main-title{font-size:2.5rem;font-weight:600;margin-bottom:15px}
+    .subtitle{font-size:1.2rem;color:rgba(255,255,255,.8);max-width:600px;margin:0 auto 50px;line-height:1.6}
+    .personas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px;margin-bottom:50px}
+    .persona-card{background:rgba(255,255,255,.08);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:30px;text-align:center;transition:.3s;cursor:pointer;position:relative;overflow:hidden}
+    .persona-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);transition:left .5s}
+    .persona-card:hover::before{left:100%}
+    .persona-card:hover{transform:translateY(-5px);background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+    .persona-card.selected{background:rgba(248,91,246,.2);border-color:#f85bf6;transform:scale(1.02)}
+    .persona-icon{width:80px;height:80px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff}
+    .persona-d{background:linear-gradient(135deg,#dc2626,#b91c1c)}
+    .persona-i{background:linear-gradient(135deg,#fbbf24,#f59e0b)}
+    .persona-s{background:linear-gradient(135deg,#10b981,#059669)}
+    .persona-c{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+    .persona-title{font-size:1.4rem;font-weight:600;margin-bottom:10px}
+    .persona-description{font-size:.95rem;color:rgba(255,255,255,.8);line-height:1.6}
+    .selection-indicator{position:absolute;top:15px;right:15px;width:24px;height:24px;background:#f85bf6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold}
+    .form-section{background:rgba(255,255,255,.05);backdrop-filter:blur(15px);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:40px;max-width:500px;margin:0 auto;opacity:0;transform:translateY(20px);transition:.3s}
+    .form-section.visible{opacity:1;transform:translateY(0)}
+    .form-title{font-size:1.8rem;font-weight:600;text-align:center;margin-bottom:30px}
+    .form-group{margin-bottom:25px}
+    .form-label{display:block;font-size:.95rem;font-weight:500;margin-bottom:8px;color:rgba(255,255,255,.9)}
+    .form-input{width:100%;padding:15px 20px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;font-size:1rem;font-family:'Poppins',sans-serif;transition:.3s}
+    .form-input:focus{outline:none;border-color:#f85bf6;background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(248,91,246,.2)}
+    .form-input::placeholder{color:rgba(255,255,255,.5)}
+    .start-button{width:100%;padding:18px;background:linear-gradient(135deg,#f85bf6,#c622f0);border:none;border-radius:12px;color:#fff;font-size:1.1rem;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;transition:.3s;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+    .start-button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 25px rgba(248,91,246,.3)}
+    .start-button:disabled{background:rgba(255,255,255,.2);cursor:not-allowed}
+    .status-message{text-align:center;padding:15px;border-radius:10px;margin-top:20px;font-weight:500}
+    .status-error{background:rgba(255,99,71,.2);border:1px solid rgba(255,99,71,.5);color:#ffcccb}
+    .status-success{background:rgba(0,247,235,.2);border:1px solid rgba(0,247,235,.5);color:#00f7eb}
+    .loading{display:none;text-align:center;padding:20px}
+    .loading.visible{display:block}
+    .spinner{border:3px solid rgba(255,255,255,.3);border-radius:50%;border-top:3px solid #f85bf6;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .attempt-selector{margin-bottom:25px}
+    .attempt-buttons{display:flex;gap:10px;justify-content:center}
+    .attempt-button{padding:10px 20px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;transition:.3s;font-family:'Poppins',sans-serif;font-size:.9rem}
+    .attempt-button.selected{background:linear-gradient(135deg,#f85bf6,#c622f0);border-color:#f85bf6}
+    @media (max-width:768px){.container{padding:20px 15px}.main-title{font-size:2rem}.personas-grid{grid-template-columns:1fr;gap:20px}.form-section{padding:30px 20px}}
+  </style>
 </head>
 <body>
-    <!-- Floating color swirls -->
-    <div class="color-swirl swirl-1"></div>
-    <div class="color-swirl swirl-2"></div>
-    <div class="color-swirl swirl-3"></div>
+  <!-- background flourishes -->
+  <div class="color-swirl swirl-1"></div>
+  <div class="color-swirl swirl-2"></div>
+  <div class="color-swirl swirl-3"></div>
 
-    <div class="container">
-        <header class="header">
-            <div class="logo-container">
-                <img src="/logo.png" alt="Logo" class="logo-image">
+  <div class="container">
+    <header class="header">
+      <div class="logo-container"><img src="/logo.png" alt="Logo" class="logo-image"/></div>
+      <h1 class="main-title">Feedback Scenario Training</h1>
+      <p class="subtitle">Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.</p>
+    </header>
+
+    <main>
+      <section class="personas-grid" id="personasGrid">
+        <div class="persona-card" data-persona="dominance" data-agent-id="agent_placeholder_d">
+          <div class="persona-icon persona-d">D</div>
+          <h3 class="persona-title">High Dominance</h3>
+          <p class="persona-description">Direct, results-focused, and competitive. May be defensive or push back against feedback. Values efficiency and bottom-line impact.</p>
+        </div>
+        <div class="persona-card" data-persona="influence" data-agent-id="agent_b9c3042ecd4b4d5a7b64e7caee">
+          <div class="persona-icon persona-i">I</div>
+          <h3 class="persona-title">High Influence</h3>
+          <p class="persona-description">Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.</p>
+        </div>
+        <div class="persona-card" data-persona="steadiness" data-agent-id="agent_placeholder_s">
+          <div class="persona-icon persona-s">S</div>
+          <h3 class="persona-title">High Steadiness</h3>
+          <p class="persona-description">Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.</p>
+        </div>
+        <div class="persona-card" data-persona="conscientiousness" data-agent-id="agent_placeholder_c">
+          <div class="persona-icon persona-c">C</div>
+          <h3 class="persona-title">High Conscientiousness</h3>
+          <p class="persona-description">Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.</p>
+        </div>
+      </section>
+
+      <section class="form-section" id="participantForm">
+        <h3 class="form-title">Ready to Start Your Training</h3>
+        <form id="trainingForm">
+          <div class="attempt-selector">
+            <label class="form-label">Training Attempt</label>
+            <div class="attempt-buttons">
+              <div class="attempt-button selected" data-attempt="1">Attempt 1 (Before Training)</div>
+              <div class="attempt-button" data-attempt="2">Attempt 2 (After Training)</div>
             </div>
-            <h1 class="main-title">Feedback Scenario Training</h1>
-            <p class="subtitle">
-                Practice giving constructive feedback using the SBI framework. Choose your conversation partner's personality type below.
-            </p>
-        </header>
+          </div>
 
-        <main>
-            <section class="personas-grid" id="personasGrid">
-                <div class="persona-card" data-persona="dominance" data-agent-id="agent_placeholder_d">
-                    <div class="persona-icon persona-d">D</div>
-                    <h3 class="persona-title">High Dominance</h3>
-                    <p class="persona-description">
-                        Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.
-                    </p>
-                </div>
+          <div class="form-group">
+            <label class="form-label" for="participantName">Your Name</label>
+            <input type="text" id="participantName" class="form-input" placeholder="Enter your full name" required/>
+          </div>
 
-                <div class="persona-card" data-persona="influence" data-agent-id="agent_b9c3042ecd4b4d5a7b64e7caee">
-                    <div class="persona-icon persona-i">I</div>
-                    <h3 class="persona-title">High Influence</h3>
-                    <p class="persona-description">
-                        Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.
-                    </p>
-                </div>
+          <div class="form-group">
+            <label class="form-label" for="participantCompany">Company</label>
+            <input type="text" id="participantCompany" class="form-input" placeholder="Your company name" required/>
+          </div>
 
-                <div class="persona-card" data-persona="steadiness" data-agent-id="agent_placeholder_s">
-                    <div class="persona-icon persona-s">S</div>
-                    <h3 class="persona-title">High Steadiness</h3>
-                    <p class="persona-description">
-                        Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.
-                    </p>
-                </div>
+          <div class="form-group">
+            <label class="form-label" for="participantEmail">Email Address</label>
+            <input type="email" id="participantEmail" class="form-input" placeholder="your.email@company.com" required/>
+          </div>
 
-                <div class="persona-card" data-persona="conscientiousness" data-agent-id="agent_placeholder_c">
-                    <div class="persona-icon persona-c">C</div>
-                    <h3 class="persona-title">High Conscientiousness</h3>
-                    <p class="persona-description">
-                        Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.
-                    </p>
-                </div>
-            </section>
+          <div class="form-group">
+            <label class="form-label" for="accessCode">Access Code</label>
+            <input type="text" id="accessCode" class="form-input" placeholder="Enter your training access code" required/>
+          </div>
 
-            <section class="form-section" id="participantForm">
-                <h3 class="form-title">Ready to Start Your Training</h3>
-                <form id="trainingForm">
-                    <div class="attempt-selector">
-                        <label class="form-label">Training Attempt</label>
-                        <div class="attempt-buttons">
-                            <div class="attempt-button selected" data-attempt="1">
-                                Attempt 1 (Before Training)
-                            </div>
-                            <div class="attempt-button" data-attempt="2">
-                                Attempt 2 (After Training)
-                            </div>
-                        </div>
-                    </div>
+          <button type="submit" class="start-button" id="startButton" disabled>Start Voice Training Session</button>
+        </form>
 
-                    <div class="form-group">
-                        <label class="form-label" for="participantName">Your Name</label>
-                        <input type="text" id="participantName" name="name" class="form-input" placeholder="Enter your full name" required>
-                    </div>
+        <div class="loading" id="loadingIndicator">
+          <div class="spinner"></div>
+          <p>Connecting to your training session...</p>
+        </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="participantCompany">Company</label>
-                        <input type="text" id="participantCompany" name="company" class="form-input" placeholder="Your company name" required>
-                    </div>
+        <div id="statusMessage" class="status-message" style="display:none;"></div>
+      </section>
+    </main>
+  </div>
 
-                    <div class="form-group">
-                        <label class="form-label" for="participantEmail">Email Address</label>
-                        <input type="email" id="participantEmail" name="email" class="form-input" placeholder="your.email@company.com" required>
-                    </div>
+  <!-- Retell Web SDK (UMD) — load BEFORE main logic -->
+  <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2/dist/umd/index.umd.js"></script>
+  <script>
+    if (!window.RetellWebClient) {
+      console.error('Retell SDK failed to load (UMD). Check Network/CSP.');
+    } else {
+      window.retell = new window.RetellWebClient();
+      window.retell.on('error',        e => console.error('Retell SDK error:', e));
+      window.retell.on('call_started', () => console.log('Call started'));
+      window.retell.on('call_ended',   () => console.log('Call ended'));
+      console.log('Retell SDK initialised (UMD)');
+    }
+  </script>
 
-                    <div class="form-group">
-                        <label class="form-label" for="accessCode">Access Code</label>
-                        <input type="text" id="accessCode" name="accessCode" class="form-input" placeholder="Enter your training access code" required>
-                    </div>
+  <!-- Main page logic -->
+  <script>
+    // State/DOM
+    let selectedPersona = null, selectedAgentId = null, selectedAttempt = 1;
+    const personaCards = document.querySelectorAll('.persona-card');
+    const formSection = document.getElementById('participantForm');
+    const trainingForm = document.getElementById('trainingForm');
+    const startButton = document.getElementById('startButton');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const statusMessage = document.getElementById('statusMessage');
+    const attemptButtons = document.querySelectorAll('.attempt-button');
 
-                    <button type="submit" class="start-button" id="startButton" disabled>
-                        Start Voice Training Session
-                    </button>
-                </form>
+    // Attempt selector
+    attemptButtons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        attemptButtons.forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedAttempt = parseInt(btn.dataset.attempt,10);
+      });
+    });
 
-                <div class="loading" id="loadingIndicator">
-                    <div class="spinner"></div>
-                    <p>Connecting to your training session...</p>
-                </div>
+    // Persona selection
+    personaCards.forEach(card=>{
+      card.addEventListener('click', ()=>{
+        personaCards.forEach(c=>{
+          c.classList.remove('selected');
+          const i=c.querySelector('.selection-indicator'); if(i) i.remove();
+        });
+        card.classList.add('selected');
+        selectedPersona = card.dataset.persona;
+        selectedAgentId = card.dataset.agentId;
 
-                <div id="statusMessage" class="status-message" style="display: none;"></div>
-            </section>
-        </main>
-    </div>
+        const indicator=document.createElement('div');
+        indicator.className='selection-indicator'; indicator.textContent='✓';
+        card.appendChild(indicator);
 
-    <!-- Retell Web SDK (UMD) - more reliable for browser -->
-    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.umd.js"></script>
-    <script>
-        // Wait for DOM to be ready
-        window.addEventListener('DOMContentLoaded', () => {
-            // The UMD build exposes RetellWebClient globally
-            if (window.RetellWebClient) {
-                window.retell = new RetellWebClient();
-                window.retell.on("error", e => console.error("Retell SDK error:", e));
-                window.retell.on("call_started", () => console.log("Call started"));
-                window.retell.on("call_ended", () => console.log("Call ended"));
-                console.log("Retell SDK initialised");
-            } else {
-                console.error("RetellWebClient not found - SDK may not have loaded correctly");
+        formSection.classList.add('visible');
+        formSection.scrollIntoView({behavior:'smooth',block:'center'});
+        const personaTitle=card.querySelector('.persona-title').textContent;
+        document.querySelector('.form-title').textContent=`Training with ${personaTitle} Employee`;
+        checkFormValidity();
+      });
+    });
+
+    // Form validation
+    const formInputs = document.querySelectorAll('.form-input');
+    formInputs.forEach(i=> i.addEventListener('input', checkFormValidity));
+    function checkFormValidity(){
+      const name = document.getElementById('participantName').value.trim();
+      const company = document.getElementById('participantCompany').value.trim();
+      const email = document.getElementById('participantEmail').value.trim();
+      const accessCode = document.getElementById('accessCode').value.trim();
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      startButton.disabled = !(name && company && emailOk && accessCode && selectedPersona);
+      document.getElementById('participantEmail').style.borderColor = (email && !emailOk) ? '#dc2626' : '';
+    }
+
+    // Helpers
+    function showStatus(msg,type){ statusMessage.textContent=msg; statusMessage.className=`status-message status-${type}`; statusMessage.style.display='block'; }
+    function hideStatus(){ statusMessage.style.display='none'; }
+
+    // Submit → create token → start call (SDK only)
+    trainingForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if(!selectedPersona || !selectedAgentId) return showStatus('Please select a personality type first.', 'error');
+      if(selectedAgentId.includes('placeholder')){
+        const title=document.querySelector('.persona-card.selected .persona-title').textContent;
+        return showStatus(`${title} personality is coming soon! Please try High Influence for now.`, 'error');
+      }
+
+      startButton.style.display='none';
+      loadingIndicator.classList.add('visible');
+      hideStatus();
+
+      const formData = {
+        name: document.getElementById('participantName').value.trim(),
+        company: document.getElementById('participantCompany').value.trim(),
+        email: document.getElementById('participantEmail').value.trim(),
+        accessCode: document.getElementById('accessCode').value.trim(),
+        persona: selectedPersona,
+        agentId: selectedAgentId,
+        scenario: 'feedback',
+        attempt: selectedAttempt
+      };
+
+      try{
+        const r = await fetch('/api/create-call', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(formData)
+        });
+        const data = await r.json();
+        if(!r.ok || !data.access_token) throw new Error(data.detail || data.message || 'Failed to create call');
+
+        if(!window.retell) throw new Error('Retell SDK not initialised');
+        await window.retell.startCall({ accessToken: data.access_token });
+
+        showStatus('Connected! You can start speaking.', 'success');
+        loadingIndicator.classList.remove('visible');
+
+        // End button (one-time)
+        if(!document.getElementById('end-session-btn')){
+          const endBtn=document.createElement('button');
+          endBtn.id='end-session-btn';
+          endBtn.textContent='End Training Session';
+          endBtn.className='start-button';
+          endBtn.style.background='linear-gradient(135deg,#dc2626,#b91c1c)';
+          endBtn.style.marginTop='20px';
+          endBtn.onclick=async ()=>{
+            try{ await window.retell.stopCall(); }
+            finally{
+              trainingForm.style.display='block';
+              startButton.style.display='block';
+              showStatus('Training session completed!', 'success');
+              endBtn.remove();
             }
-        });
-    </script>
-
-    <script>
-        // Global state
-        let selectedPersona = null;
-        let selectedAgentId = null;
-        let selectedAttempt = 1;
-
-        // DOM elements
-        const personaCards = document.querySelectorAll('.persona-card');
-        const formSection = document.getElementById('participantForm');
-        const trainingForm = document.getElementById('trainingForm');
-        const startButton = document.getElementById('startButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const statusMessage = document.getElementById('statusMessage');
-        const attemptButtons = document.querySelectorAll('.attempt-button');
-
-        // Initialize attempt selection
-        attemptButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                attemptButtons.forEach(b => b.classList.remove('selected'));
-                button.classList.add('selected');
-                selectedAttempt = parseInt(button.dataset.attempt);
-            });
-        });
-
-        // Initialize persona selection
-        personaCards.forEach(card => {
-            card.addEventListener('click', () => {
-                // Remove selection from other cards AND remove all checkmarks
-                personaCards.forEach(c => {
-                    c.classList.remove('selected');
-                    const existingIndicator = c.querySelector('.selection-indicator');
-                    if (existingIndicator) {
-                        existingIndicator.remove();
-                    }
-                });
-
-                // Select this card
-                card.classList.add('selected');
-                selectedPersona = card.dataset.persona;
-                selectedAgentId = card.dataset.agentId;
-
-                // Add selection indicator to ONLY this card
-                const indicator = document.createElement('div');
-                indicator.className = 'selection-indicator';
-                indicator.textContent = '✓';
-                card.appendChild(indicator);
-
-                // Show form with animation
-                formSection.classList.add('visible');
-                formSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                // Update form title
-                const personaTitle = card.querySelector('.persona-title').textContent;
-                document.querySelector('.form-title').textContent = `Training with ${personaTitle} Employee`;
-
-                // Enable start button if form is valid
-                checkFormValidity();
-            });
-        });
-
-        // Form validation
-        const formInputs = document.querySelectorAll('.form-input');
-        formInputs.forEach(input => {
-            input.addEventListener('input', checkFormValidity);
-        });
-
-        function checkFormValidity() {
-            const name = document.getElementById('participantName').value.trim();
-            const company = document.getElementById('participantCompany').value.trim();
-            const email = document.getElementById('participantEmail').value.trim();
-            const accessCode = document.getElementById('accessCode').value.trim();
-
-            // Email format validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const isValidEmail = emailRegex.test(email);
-
-            const isValid = name && company && email && isValidEmail && accessCode && selectedPersona;
-
-            startButton.disabled = !isValid;
-
-            // Show email error if email is entered but invalid
-            const emailInput = document.getElementById('participantEmail');
-            if (email && !isValidEmail) {
-                emailInput.style.borderColor = '#dc2626';
-                emailInput.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
-            } else {
-                emailInput.style.borderColor = '';
-                emailInput.style.boxShadow = '';
-            }
+          };
+          formSection.appendChild(endBtn);
         }
+        trainingForm.style.display='none';
 
-        // MAIN FORM SUBMISSION - SDK ONLY, NO WEBRTC FALLBACK
-        trainingForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+      }catch(err){
+        console.error(err);
+        showStatus(err.message || 'Failed to start training session. Please try again.', 'error');
+        startButton.style.display='block';
+        loadingIndicator.classList.remove('visible');
+      }
+    });
 
-            if (!selectedPersona || !selectedAgentId) {
-                showStatus('Please select a personality type first.', 'error');
-                return;
-            }
-
-            // Check for placeholder agents
-            if (selectedAgentId.includes('placeholder')) {
-                const personaTitle = document.querySelector('.persona-card.selected .persona-title').textContent;
-                showStatus(`${personaTitle} personality is coming soon! Please try High Influence for now.`, 'error');
-                return;
-            }
-
-            // Show loading state
-            startButton.style.display = 'none';
-            loadingIndicator.classList.add('visible');
-            hideStatus();
-
-            // Collect form data
-            const formData = {
-                name: document.getElementById('participantName').value.trim(),
-                company: document.getElementById('participantCompany').value.trim(),
-                email: document.getElementById('participantEmail').value.trim(),
-                accessCode: document.getElementById('accessCode').value.trim(),
-                persona: selectedPersona,
-                agentId: selectedAgentId,
-                scenario: 'feedback',
-                attempt: selectedAttempt
-            };
-
-            try {
-                // Step 1: Call YOUR API to get the access token
-                console.log('Calling API to create call...');
-                console.log('Sending data:', formData);
-                
-                const response = await fetch('/api/create-call', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
-                
-                const data = await response.json();
-                console.log('API Response:', data);
-
-                if (!response.ok) {
-                    console.error('API Error Response:', data);
-                    throw new Error(data.error || data.message || 'Failed to create call');
-                }
-
-                if (!data.access_token) {
-                    console.error('No access token in response:', data);
-                    throw new Error('No access token received from server');
-                }
-
-                // Step 2: Use SDK ONLY - no WebRTC fallback
-                console.log('Starting call with SDK...');
-                
-                if (!window.retell) {
-                    throw new Error('Retell SDK not loaded. Please refresh the page and try again.');
-                }
-
-                // Start the call using SDK
-                await window.retell.startCall({ 
-                    accessToken: data.access_token 
-                });
-                
-                showStatus('Connected! You can start speaking.', 'success');
-                loadingIndicator.classList.remove('visible');
-
-                // Add end call button if it doesn't exist
-                if (!document.getElementById('end-session-btn')) {
-                    const endButton = document.createElement('button');
-                    endButton.id = 'end-session-btn';
-                    endButton.textContent = 'End Training Session';
-                    endButton.className = 'start-button';
-                    endButton.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-                    endButton.style.marginTop = '20px';
-                    endButton.onclick = async () => {
-                        try { 
-                            await window.retell.stopCall();
-                        } catch (e) {
-                            console.error('Error stopping call:', e);
-                        } finally {
-                            trainingForm.style.display = 'block';
-                            startButton.style.display = 'block';
-                            showStatus('Training session completed!', 'success');
-                            endButton.remove();
-                        }
-                    };
-                    formSection.appendChild(endButton);
-                }
-                
-                // Hide form during call
-                trainingForm.style.display = 'none';
-
-            } catch (error) {
-                console.error('Error starting training:', error);
-                console.error('Full error details:', error.message);
-                showStatus(error.message || 'Failed to start training session. Please try again.', 'error');
-                startButton.style.display = 'block';
-                loadingIndicator.classList.remove('visible');
-            }
-        });
-
-        // Status message helper
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message status-${type}`;
-            statusMessage.style.display = 'block';
-        }
-
-        function hideStatus() {
-            statusMessage.style.display = 'none';
-        }
-
-        // Add some interactive polish
-        document.addEventListener('mousemove', (e) => {
-            const cards = document.querySelectorAll('.persona-card');
-            cards.forEach(card => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-
-                if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const rotateX = (y - centerY) / 20;
-                    const rotateY = (centerX - x) / 20;
-
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
-                } else {
-                    card.style.transform = '';
-                }
-            });
-        });
-    </script>
+    // Little hover polish
+    document.addEventListener('mousemove', (e)=>{
+      document.querySelectorAll('.persona-card').forEach(card=>{
+        const r=card.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+        if(x>=0 && x<=r.width && y>=0 && y<=r.height){
+          const cx=r.width/2, cy=r.height/2;
+          card.style.transform=`perspective(1000px) rotateX(${(y-cy)/20}deg) rotateY(${(cx-x)/20}deg) translateZ(10px)`;
+        } else { card.style.transform=''; }
+      });
+    });
+  </script>
 </body>
 </html>
