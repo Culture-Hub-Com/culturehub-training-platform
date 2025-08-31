@@ -490,8 +490,9 @@
         let selectedPersona = null;
         let selectedAgentId = null;
         let selectedAttempt = 1;
-        let currentPeerConnection = null;
-        let currentStream = null;
+        // Remove these - no longer needed with SDK
+        // let currentPeerConnection = null;
+        // let currentStream = null;
 
         // DOM elements
         const personaCards = document.querySelectorAll('.persona-card');
@@ -640,94 +641,35 @@
                     throw new Error('No access token received from server');
                 }
 
-                // Step 2: Get user's microphone permission
-                console.log('Requesting microphone access...');
-                currentStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        sampleRate: 24000
-                    }
+                // Step 2: Use Retell SDK to start the call
+                console.log('Starting call with Retell SDK...');
+                await window.retellClient.startCall({ 
+                    accessToken: data.access_token 
                 });
-                console.log('Microphone access granted');
-
-                // Step 3: Create WebRTC connection
-                console.log('Creating WebRTC connection...');
-                currentPeerConnection = new RTCPeerConnection({
-                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-                });
-
-                // Add audio track to connection
-                currentStream.getTracks().forEach(track => {
-                    currentPeerConnection.addTrack(track, currentStream);
-                });
-
-                // Handle incoming audio from Retell
-                currentPeerConnection.ontrack = (event) => {
-                    console.log('Received audio track from Retell');
-                    const audio = new Audio();
-                    audio.srcObject = event.streams[0];
-                    audio.autoplay = true;
-                    audio.play().catch(e => console.error('Audio play error:', e));
-                    
-                    showStatus('Connected! You can start speaking.', 'success');
-                    loadingIndicator.classList.remove('visible');
-                };
-
-                // Handle connection state changes
-                currentPeerConnection.onconnectionstatechange = () => {
-                    console.log('Connection state:', currentPeerConnection.connectionState);
-                };
-
-                // Create offer
-                const offer = await currentPeerConnection.createOffer();
-                await currentPeerConnection.setLocalDescription(offer);
-                console.log('Created WebRTC offer');
-
-                // Step 4: Send offer to Retell to establish connection
-                console.log('Sending offer to Retell with access token:', data.access_token);
-                const sdpResponse = await fetch('https://api.retellai.com/v2/web-call-sdp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        access_token: data.access_token,
-                        sdp: offer.sdp,
-                        sample_rate: 24000
-                    })
-                });
-
-                console.log('SDP Response status:', sdpResponse.status);
                 
-                if (!sdpResponse.ok) {
-                    const errorText = await sdpResponse.text();
-                    console.error('SDP Response Error:', errorText);
-                    console.error('Failed with access token:', data.access_token);
-                    throw new Error('Failed to establish call connection with Retell');
+                showStatus('Connected! You can start speaking.', 'success');
+                loadingIndicator.classList.remove('visible');
+
+                // Add end call button if it doesn't exist
+                if (!document.getElementById('end-session-btn')) {
+                    const endButton = document.createElement('button');
+                    endButton.id = 'end-session-btn';
+                    endButton.textContent = 'End Training Session';
+                    endButton.className = 'start-button';
+                    endButton.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                    endButton.style.marginTop = '20px';
+                    endButton.onclick = async () => {
+                        try { 
+                            await window.retellClient.stopCall(); 
+                        } finally {
+                            trainingForm.style.display = 'block';
+                            startButton.style.display = 'block';
+                            showStatus('Training session completed!', 'success');
+                            endButton.remove();
+                        }
+                    };
+                    formSection.appendChild(endButton);
                 }
-
-                const sdpData = await sdpResponse.json();
-                console.log('Received answer from Retell');
-                
-                // Set remote description from Retell
-                await currentPeerConnection.setRemoteDescription({
-                    type: 'answer',
-                    sdp: sdpData.sdp
-                });
-                console.log('WebRTC connection established');
-
-                // Add end call button
-                const endButton = document.createElement('button');
-                endButton.textContent = 'End Training Session';
-                endButton.className = 'start-button';
-                endButton.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-                endButton.style.marginTop = '20px';
-                endButton.onclick = () => {
-                    endCall();
-                };
-                
-                formSection.appendChild(endButton);
                 
                 // Hide form during call
                 trainingForm.style.display = 'none';
@@ -741,28 +683,8 @@
             }
         });
 
-        // End call function
-        function endCall() {
-            if (currentPeerConnection) {
-                currentPeerConnection.close();
-                currentPeerConnection = null;
-            }
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
-            
-            // Remove end button
-            const endButton = formSection.querySelector('button[style*="dc2626"]');
-            if (endButton) {
-                endButton.remove();
-            }
-            
-            // Show form again
-            trainingForm.style.display = 'block';
-            startButton.style.display = 'block';
-            showStatus('Training session completed!', 'success');
-        }
+        // Remove the old endCall function - no longer needed
+        // The end button handler is now inline above
 
         // Status message helper
         function showStatus(message, type) {
@@ -795,6 +717,14 @@
                 }
             });
         });
+    </script>
+    <!-- Load Retell SDK properly -->
+    <script type="module">
+        import { RetellWebClient } from "https://unpkg.com/retell-client-js-sdk@2/dist/index.js";
+        window.retellClient = new RetellWebClient();
+        window.retellClient.on('error', e => console.error('Retell SDK error:', e));
+        window.retellClient.on('call_ended', () => console.log('Call ended'));
+        window.retellClient.on('call_started', () => console.log('Call started successfully'));
     </script>
 </body>
 </html>
