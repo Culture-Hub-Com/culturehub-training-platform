@@ -485,6 +485,21 @@
         </main>
     </div>
 
+    <!-- Retell Web SDK (UMD) - Load BEFORE main script -->
+    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2/dist/umd/index.umd.js"></script>
+    <script>
+        if (!window.RetellWebClient) {
+            console.error('Retell SDK failed to load.');
+        } else if (!window.retell) {
+            window.retell = new window.RetellWebClient();
+            // Use official event names (hyphenated)
+            window.retell.on('error', e => console.error('Retell SDK error:', e));
+            window.retell.on('call-started', () => console.log('Call started'));
+            window.retell.on('call-ended', () => console.log('Call ended'));
+            console.log('Retell SDK initialised');
+        }
+    </script>
+
     <script>
         // Global state
         let selectedPersona = null;
@@ -643,7 +658,12 @@
 
                 // Step 2: Use Retell SDK to start the call
                 console.log('Starting call with Retell SDK...');
-                await window.retellClient.startCall({ 
+                
+                if (!window.retell) {
+                    throw new Error('Retell SDK not initialized');
+                }
+                
+                await window.retell.startCall({ 
                     accessToken: data.access_token 
                 });
                 
@@ -660,7 +680,11 @@
                     endButton.style.marginTop = '20px';
                     endButton.onclick = async () => {
                         try { 
-                            await window.retellClient.stopCall(); 
+                            if (window.retell) {
+                                await window.retell.stopCall();
+                            }
+                        } catch (e) {
+                            console.error('Error stopping call:', e);
                         } finally {
                             trainingForm.style.display = 'block';
                             startButton.style.display = 'block';
@@ -717,14 +741,6 @@
                 }
             });
         });
-    </script>
-    <!-- Load Retell SDK properly -->
-    <script type="module">
-        import { RetellWebClient } from "https://unpkg.com/retell-client-js-sdk@2/dist/index.js";
-        window.retellClient = new RetellWebClient();
-        window.retellClient.on('error', e => console.error('Retell SDK error:', e));
-        window.retellClient.on('call_ended', () => console.log('Call ended'));
-        window.retellClient.on('call_started', () => console.log('Call started successfully'));
     </script>
 </body>
 </html>
