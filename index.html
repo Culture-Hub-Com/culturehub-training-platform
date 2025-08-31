@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feedback Training</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- ADD THIS LINE FOR RETELL SDK -->
-    <script src="https://unpkg.com/retell-client-js-sdk@2.0.0/dist/index.js"></script>
+    <!-- Retell SDK - Updated URL -->
+    <script src="https://cdn.retellai.com/sdk/v2/index.js"></script>
     <style>
         * {
             margin: 0;
@@ -487,6 +487,9 @@
         </main>
     </div>
 
+    <!-- Retell SDK - Using CDN version -->
+    <script src="https://unpkg.com/retell-client-js-sdk@2.0.7/dist/retell-client-sdk.min.js"></script>
+    
     <script>
         // Global state
         let selectedPersona = null;
@@ -505,30 +508,40 @@
 
         // Initialize Retell SDK when page loads
         window.addEventListener('DOMContentLoaded', () => {
+            // Debug: Check if RetellWebClient exists
+            console.log('Retell SDK loaded?', typeof RetellWebClient !== 'undefined');
+            
             // Initialize Retell client
             if (typeof RetellWebClient !== 'undefined') {
-                retellClient = new Retell.RetellWebClient();
-                
-                // Set up event listeners for call events
-                retellClient.on('call_started', () => {
-                    console.log('Call started successfully!');
-                    showStatus('Connected! You can start speaking.', 'success');
-                    loadingIndicator.classList.remove('visible');
-                });
-                
-                retellClient.on('call_ended', () => {
-                    console.log('Call ended');
-                    showStatus('Training session completed!', 'success');
-                    startButton.style.display = 'block';
-                    loadingIndicator.classList.remove('visible');
-                });
-                
-                retellClient.on('error', (error) => {
-                    console.error('Call error:', error);
-                    showStatus('Call error. Please try again.', 'error');
-                    startButton.style.display = 'block';
-                    loadingIndicator.classList.remove('visible');
-                });
+                try {
+                    retellClient = new RetellWebClient();
+                    console.log('Retell client initialized successfully');
+                    
+                    // Set up event listeners for call events
+                    retellClient.on('call_started', () => {
+                        console.log('Call started successfully!');
+                        showStatus('Connected! You can start speaking.', 'success');
+                        loadingIndicator.classList.remove('visible');
+                    });
+                    
+                    retellClient.on('call_ended', () => {
+                        console.log('Call ended');
+                        showStatus('Training session completed!', 'success');
+                        startButton.style.display = 'block';
+                        loadingIndicator.classList.remove('visible');
+                    });
+                    
+                    retellClient.on('error', (error) => {
+                        console.error('Call error:', error);
+                        showStatus('Call error. Please try again.', 'error');
+                        startButton.style.display = 'block';
+                        loadingIndicator.classList.remove('visible');
+                    });
+                } catch (error) {
+                    console.error('Failed to initialize Retell client:', error);
+                }
+            } else {
+                console.error('RetellWebClient is not defined - SDK may not be loaded');
             }
         });
 
