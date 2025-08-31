@@ -614,6 +614,8 @@
             try {
                 // Step 1: Call YOUR API to get the access token
                 console.log('Calling API to create call...');
+                console.log('Sending data:', formData);
+                
                 const response = await fetch('/api/create-call', {
                     method: 'POST',
                     headers: {
@@ -622,14 +624,19 @@
                     body: JSON.stringify(formData)
                 });
 
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
                 const data = await response.json();
                 console.log('API Response:', data);
 
                 if (!response.ok) {
-                    throw new Error(data.message || 'Failed to create call');
+                    console.error('API Error Response:', data);
+                    throw new Error(data.error || data.message || 'Failed to create call');
                 }
 
                 if (!data.access_token) {
+                    console.error('No access token in response:', data);
                     throw new Error('No access token received from server');
                 }
 
@@ -642,6 +649,7 @@
                         sampleRate: 24000
                     }
                 });
+                console.log('Microphone access granted');
 
                 // Step 3: Create WebRTC connection
                 console.log('Creating WebRTC connection...');
@@ -674,9 +682,10 @@
                 // Create offer
                 const offer = await currentPeerConnection.createOffer();
                 await currentPeerConnection.setLocalDescription(offer);
+                console.log('Created WebRTC offer');
 
                 // Step 4: Send offer to Retell to establish connection
-                console.log('Sending offer to Retell...');
+                console.log('Sending offer to Retell with access token:', data.access_token);
                 const sdpResponse = await fetch('https://api.retellai.com/v2/web-call-sdp', {
                     method: 'POST',
                     headers: {
@@ -689,9 +698,12 @@
                     })
                 });
 
+                console.log('SDP Response status:', sdpResponse.status);
+                
                 if (!sdpResponse.ok) {
                     const errorText = await sdpResponse.text();
                     console.error('SDP Response Error:', errorText);
+                    console.error('Failed with access token:', data.access_token);
                     throw new Error('Failed to establish call connection with Retell');
                 }
 
@@ -703,6 +715,7 @@
                     type: 'answer',
                     sdp: sdpData.sdp
                 });
+                console.log('WebRTC connection established');
 
                 // Add end call button
                 const endButton = document.createElement('button');
@@ -721,6 +734,7 @@
 
             } catch (error) {
                 console.error('Error starting training:', error);
+                console.error('Full error details:', error.message);
                 showStatus(error.message || 'Failed to start training session. Please try again.', 'error');
                 startButton.style.display = 'block';
                 loadingIndicator.classList.remove('visible');
