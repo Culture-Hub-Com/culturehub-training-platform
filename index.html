@@ -485,6 +485,41 @@
         </main>
     </div>
 
+    <!-- Retell Web SDK (UMD) - Defensive loading -->
+    <script src="https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2/dist/umd/index.umd.js"></script>
+    <script>
+        // Confirm the script actually loaded
+        const retellGlobals = Object.keys(window).filter(k => k.toLowerCase().includes('retell'));
+        console.log('Retell globals on window:', retellGlobals);
+
+        // Try the known globals (different builds expose different names)
+        const RetellCtor =
+            window.RetellWebClient ||                // common UMD global
+            (window.Retell && window.Retell.WebClient); // alt namespace just in case
+
+        if (!RetellCtor) {
+            console.error('Retell SDK global missing — check Network tab for the SDK script request and any CSP/ad-blockers.');
+            
+            // Fallback: try loading from different CDN
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/retell-client-js-sdk@2.0.7/dist/retell-client-sdk.min.js';
+            script.onload = () => {
+                console.log('Trying fallback SDK...');
+                if (window.RetellWebClient) {
+                    window.retell = new window.RetellWebClient();
+                    console.log('Fallback SDK loaded successfully');
+                }
+            };
+            document.head.appendChild(script);
+        } else {
+            window.retell = new RetellCtor();
+            window.retell.on('error', e => console.error('Retell SDK error:', e));
+            window.retell.on('call-started', () => console.log('Call started'));
+            window.retell.on('call-ended', () => console.log('Call ended'));
+            console.log('Retell SDK initialised');
+        }
+    </script>
+
     <script>
         // Global state
         let selectedPersona = null;
@@ -641,71 +676,89 @@
                     throw new Error('No access token received from server');
                 }
 
-                // Step 2: Get user's microphone permission
-                console.log('Requesting microphone access...');
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        sampleRate: 24000
-                    }
-                });
-                console.log('Microphone access granted');
-
-                // Step 3: Create WebRTC connection
-                console.log('Creating WebRTC connection...');
-                const pc = new RTCPeerConnection({
-                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-                });
-
-                // Add audio track
-                stream.getTracks().forEach(track => {
-                    pc.addTrack(track, stream);
-                });
-
-                // Handle incoming audio
-                pc.ontrack = (event) => {
-                    console.log('Received audio from Retell');
-                    const audio = new Audio();
-                    audio.srcObject = event.streams[0];
-                    audio.play();
+                // Step 2: Try SDK first, fallback to WebRTC if needed
+                console.log('Starting call...');
+                
+                if (window.retell) {
+                    // SDK is available - use it
+                    console.log('Using Retell SDK...');
+                    await window.retell.startCall({ 
+                        accessToken: data.access_token 
+                    });
                     showStatus('Connected! You can start speaking.', 'success');
                     loadingIndicator.classList.remove('visible');
-                };
+                } else {
+                    // SDK not available - use manual WebRTC with correct auth
+                    console.log('SDK not available, using WebRTC fallback...');
+                    
+                    // Get mic
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { 
+                            echoCancellation: true, 
+                            noiseSuppression: true,
+                            sampleRate: 24000
+                        } 
+                    });
+                    console.log('Microphone access granted');
 
-                // Create offer
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
+                    // Peer connection
+                    const pc = new RTCPeerConnection({ 
+                        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] 
+                    });
+                    
+                    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+                    
+                    pc.ontrack = (ev) => {
+                        console.log('Received audio track');
+                        const audio = new Audio();
+                        audio.srcObject = ev.streams[0];
+                        audio.autoplay = true;
+                        audio.play().catch(e => console.log('Audio play:', e));
+                        showStatus('Connected! You can start speaking.', 'success');
+                        loadingIndicator.classList.remove('visible');
+                    };
 
-                // Step 4: Send SDP with Authorization header (as ChatGPT pointed out)
-                console.log('Sending SDP to Retell...');
-                const sdpResponse = await fetch('https://api.retellai.com/v2/web-call-sdp', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${data.access_token}`,  // KEY FIX: Bearer token in header
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        sdp: offer.sdp,
-                        sample_rate: 24000
-                    })
-                });
+                    // Create offer
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
 
-                if (!sdpResponse.ok) {
-                    const errorText = await sdpResponse.text();
-                    console.error('SDP Error:', errorText);
-                    throw new Error('Failed to connect');
+                    // Send SDP to Retell with Bearer token in header
+                    console.log('Sending SDP with Bearer token...');
+                    const sdpRes = await fetch('https://api.retellai.com/v2/web-call-sdp', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${data.access_token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            sdp: offer.sdp, 
+                            sample_rate: 24000 
+                        })
+                    });
+                    
+                    if (!sdpRes.ok) {
+                        const errorText = await sdpRes.text();
+                        console.error('SDP Error:', errorText);
+                        throw new Error('SDP request failed: ' + errorText);
+                    }
+                    
+                    const sdpData = await sdpRes.json();
+                    console.log('Got SDP answer');
+
+                    // Set remote answer
+                    await pc.setRemoteDescription({ 
+                        type: 'answer', 
+                        sdp: sdpData.sdp 
+                    });
+                    
+                    console.log('WebRTC connection established');
+                    
+                    // Store connection for cleanup
+                    window.currentPC = pc;
+                    window.currentStream = stream;
                 }
 
-                const sdpData = await sdpResponse.json();
-                await pc.setRemoteDescription({
-                    type: 'answer',
-                    sdp: sdpData.sdp
-                });
-
-                console.log('Call connected!');
-                
-                // Add end button
+                // Add end call button if it doesn't exist
                 if (!document.getElementById('end-session-btn')) {
                     const endButton = document.createElement('button');
                     endButton.id = 'end-session-btn';
@@ -713,13 +766,22 @@
                     endButton.className = 'start-button';
                     endButton.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
                     endButton.style.marginTop = '20px';
-                    endButton.onclick = () => {
-                        pc.close();
-                        stream.getTracks().forEach(track => track.stop());
-                        trainingForm.style.display = 'block';
-                        startButton.style.display = 'block';
-                        showStatus('Training session completed!', 'success');
-                        endButton.remove();
+                    endButton.onclick = async () => {
+                        try { 
+                            if (window.retell) {
+                                await window.retell.stopCall();
+                            } else if (window.currentPC) {
+                                window.currentPC.close();
+                                window.currentStream.getTracks().forEach(t => t.stop());
+                            }
+                        } catch (e) {
+                            console.error('Error stopping call:', e);
+                        } finally {
+                            trainingForm.style.display = 'block';
+                            startButton.style.display = 'block';
+                            showStatus('Training session completed!', 'success');
+                            endButton.remove();
+                        }
                     };
                     formSection.appendChild(endButton);
                 }
