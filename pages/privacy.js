@@ -1,225 +1,207 @@
 // pages/privacy.js
-import Link from "next/link";
+import { useRouter } from "next/router";
 
-export default function Privacy() {
+export default function PrivacyPage() {
+  const router = useRouter();
+  const { from } = router.query;
+
+  // Map short names to real routes
+  const routeMap = {
+    feedback: "/feedback",
+    meddpicc: "/meddpicc",
+    coaching: "/coaching",
+    negotiation: "/negotiation",
+  };
+
+  function handleBack(e) {
+    e.preventDefault();
+
+    // 1) If we’ve been told where they came from, go there
+    if (from && routeMap[from]) {
+      router.push(routeMap[from]);
+      return;
+    }
+
+    // 2) If they navigated from within your site, go back in history
+    if (typeof document !== "undefined" && document.referrer) {
+      try {
+        const ref = new URL(document.referrer);
+        if (ref.origin === window.location.origin) {
+          router.back();
+          return;
+        }
+      } catch {}
+    }
+
+    // 3) Fallback
+    router.push("/feedback");
+  }
+
   return (
-    <div className="privacy-page">
-      {/* Floating swirls for consistency */}
-      <div className="color-swirl swirl-1"></div>
-      <div className="color-swirl swirl-2"></div>
-      <div className="color-swirl swirl-3"></div>
-      <div className="color-swirl swirl-4"></div>
+    <div style={styles.page}>
+      {/* Floating background swirls */}
+      <div style={{ ...styles.swirl, ...styles.swirl1 }} />
+      <div style={{ ...styles.swirl, ...styles.swirl2 }} />
+      <div style={{ ...styles.swirl, ...styles.swirl3 }} />
 
-      <div className="container">
-        <header className="header">
-          <div className="logo-container">
-            <img src="/logo.png" alt="CultureHub" className="logo-image" />
-          </div>
-          <h1 className="main-title">Privacy Notice</h1>
-          <p className="subtitle">
-            How we collect, use, and protect your data during training
-            simulations.
+      <div style={styles.container}>
+        <header style={styles.header}>
+          <h1 style={styles.title}>Privacy Notice</h1>
+          <p style={styles.subtitle}>
+            Your privacy matters to us. Here’s how we use and protect your data
+            when you take part in our training simulations.
           </p>
         </header>
 
-        <main>
-          <section className="privacy-content glass-card">
-            <h2>What we collect</h2>
-            <p>
-              Your name, company, email address, access code, selected DISC
-              persona, attempt number, and the training conversation transcript.
-            </p>
-
-            <h2>Why we collect it</h2>
-            <p>
-              To personalise your simulation, generate a tailored feedback
-              report, and measure learning impact across attempts.
-            </p>
-
-            <h2>How we use it</h2>
-            <ul>
-              <li>Run the live AI voice simulation</li>
-              <li>Create your personalised feedback (scores + narrative)</li>
-              <li>Email you a PDF report</li>
-              <li>
-                Analyse anonymised results to improve our programmes over time
-              </li>
-            </ul>
-
-            <h2>Who sees it</h2>
-            <p>
-              Only CultureHub and our trusted processors: Airtable, Make.com,
-              OpenAI (for analysis), and Google Docs/Drive (for report
-              generation & delivery). We do not sell your data.
-            </p>
-
-            <h2>How long we keep it</h2>
-            <p>Up to 12 months, unless you request deletion sooner.</p>
-
-            <h2>Your rights</h2>
-            <p>
-              You can request a copy of your data or ask us to delete it at any
-              time. Email{" "}
-              <a href="mailto:privacy@culturehub.com">privacy@culturehub.com</a>
-              .
+        <main style={styles.content}>
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>What data we collect</h2>
+            <p style={styles.paragraph}>
+              We collect your name, company, email address, attempt number, and
+              training responses. This allows us to provide you with a
+              personalised training experience and generate a tailored feedback
+              report.
             </p>
           </section>
 
-          {/* Back button */}
-          <div style={{ textAlign: "center", marginTop: "40px" }}>
-            <Link href="/feedback">
-              <button className="start-button">← Back to Training</button>
-            </Link>
-          </div>
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>How we use your data</h2>
+            <p style={styles.paragraph}>
+              Your data is used solely for training purposes: to set up your
+              voice simulation, generate feedback reports, and share results
+              with you via email. We do not sell or share your data with third
+              parties outside of this process.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>How long we keep your data</h2>
+            <p style={styles.paragraph}>
+              Training records and reports are stored securely for 12 months,
+              after which they are permanently deleted. You can request deletion
+              earlier by contacting us.
+            </p>
+          </section>
+
+          <section style={styles.section}>
+            <h2 style={styles.sectionTitle}>Your rights</h2>
+            <p style={styles.paragraph}>
+              You have the right to access, correct, or delete your data at any
+              time. Please contact us if you wish to exercise these rights.
+            </p>
+          </section>
         </main>
 
-        <footer className="footer">
-          <p className="copyright">
-            © 2025 CultureHub Limited. All rights reserved.
-          </p>
-        </footer>
+        <div style={{ textAlign: "center", marginTop: "50px" }}>
+          <button style={styles.backButton} onClick={handleBack}>
+            ← Back to Training
+          </button>
+        </div>
       </div>
-
-      <style jsx>{`
-        body,
-        .privacy-page {
-          background: #000;
-          min-height: 100vh;
-          font-family: "Poppins", sans-serif;
-          color: white;
-        }
-
-        /* Swirls (same as feedback page) */
-        .color-swirl {
-          position: fixed;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.3;
-          animation: float 25s infinite ease-in-out;
-          pointer-events: none;
-          z-index: 0;
-          mix-blend-mode: screen;
-        }
-        .swirl-1 {
-          width: 400px;
-          height: 400px;
-          background: linear-gradient(135deg, #02f5ec, #349fef);
-          top: -10%;
-          left: -10%;
-        }
-        .swirl-2 {
-          width: 300px;
-          height: 300px;
-          background: linear-gradient(135deg, #349fef, #f95bf6);
-          top: 60%;
-          right: -5%;
-        }
-        .swirl-3 {
-          width: 350px;
-          height: 350px;
-          background: linear-gradient(135deg, #02f5ec, #f95bf6);
-          bottom: -10%;
-          left: 30%;
-        }
-        .swirl-4 {
-          width: 250px;
-          height: 250px;
-          background: linear-gradient(135deg, #fbbf24, #f59e0b);
-          top: 30%;
-          left: 50%;
-        }
-
-        @keyframes float {
-          0%,
-          100% {
-            transform: translate(0px, 0px) scale(1) rotate(0deg);
-          }
-          50% {
-            transform: translate(20px, -20px) scale(1.05) rotate(180deg);
-          }
-        }
-
-        .container {
-          position: relative;
-          z-index: 10;
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 40px 20px;
-        }
-
-        .header {
-          text-align: center;
-          margin-bottom: 50px;
-        }
-        .logo-container {
-          margin-bottom: 20px;
-        }
-        .logo-image {
-          max-width: 250px;
-        }
-        .main-title {
-          font-size: 2.4rem;
-          font-weight: 600;
-          margin-bottom: 15px;
-          text-shadow: 0 2px 20px rgba(248, 91, 246, 0.3);
-        }
-        .subtitle {
-          font-size: 1.1rem;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .privacy-content {
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.08),
-            rgba(255, 255, 255, 0.03)
-          );
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 24px;
-          padding: 35px;
-          line-height: 1.7;
-        }
-        .privacy-content h2 {
-          margin-top: 30px;
-          font-size: 1.4rem;
-          background: linear-gradient(135deg, #02f5ec, #349fef, #f95bf6);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .privacy-content a {
-          color: #02f5ec;
-        }
-        .privacy-content ul {
-          margin: 15px 0 15px 20px;
-          list-style: disc;
-        }
-
-        .start-button {
-          padding: 16px 26px;
-          border-radius: 12px;
-          border: none;
-          background: linear-gradient(135deg, #02f5ec, #349fef, #f95bf6);
-          color: white;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 8px 26px rgba(2, 245, 236, 0.35);
-        }
-        .start-button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 36px rgba(2, 245, 236, 0.5);
-        }
-
-        .footer {
-          text-align: center;
-          margin-top: 60px;
-          padding: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 0.9rem;
-        }
-      `}</style>
     </div>
   );
 }
+
+// --------------------
+// Styles
+// --------------------
+const styles = {
+  page: {
+    fontFamily: "'Poppins', sans-serif",
+    background: "#000",
+    color: "white",
+    minHeight: "100vh",
+    overflowX: "hidden",
+    position: "relative",
+    padding: "40px 20px",
+  },
+  container: {
+    position: "relative",
+    zIndex: 10,
+    maxWidth: "900px",
+    margin: "0 auto",
+  },
+  header: {
+    textAlign: "center",
+    marginBottom: "50px",
+  },
+  title: {
+    fontSize: "2.5rem",
+    fontWeight: 600,
+    marginBottom: "15px",
+    textShadow: "0 2px 20px rgba(248, 91, 246, 0.3)",
+  },
+  subtitle: {
+    fontSize: "1.2rem",
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: 1.6,
+    maxWidth: "700px",
+    margin: "0 auto",
+  },
+  content: {
+    background: "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(20px)",
+    borderRadius: "20px",
+    padding: "30px",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+  },
+  section: {
+    marginBottom: "30px",
+  },
+  sectionTitle: {
+    fontSize: "1.5rem",
+    fontWeight: 600,
+    marginBottom: "12px",
+    background: "linear-gradient(135deg, #02f5ec, #349fef, #f95bf6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+  },
+  paragraph: {
+    fontSize: "1rem",
+    color: "rgba(255,255,255,0.8)",
+    lineHeight: 1.7,
+  },
+  backButton: {
+    padding: "15px 25px",
+    background: "linear-gradient(135deg, #02f5ec, #349fef, #f95bf6)",
+    border: "none",
+    borderRadius: "12px",
+    color: "white",
+    fontSize: "1.1rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    boxShadow: "0 8px 32px rgba(2, 245, 236, 0.4)",
+    transition: "all 0.3s ease",
+  },
+  swirl: {
+    position: "fixed",
+    borderRadius: "50%",
+    filter: "blur(80px)",
+    opacity: 0.3,
+    animation: "float 25s infinite ease-in-out",
+    pointerEvents: "none",
+    zIndex: 0,
+    mixBlendMode: "screen",
+  },
+  swirl1: {
+    width: "400px",
+    height: "400px",
+    background: "linear-gradient(135deg, #02f5ec, #349fef)",
+    top: "-10%",
+    left: "-10%",
+  },
+  swirl2: {
+    width: "300px",
+    height: "300px",
+    background: "linear-gradient(135deg, #349fef, #f95bf6)",
+    top: "60%",
+    right: "-5%",
+  },
+  swirl3: {
+    width: "350px",
+    height: "350px",
+    background: "linear-gradient(135deg, #02f5ec, #f95bf6)",
+    bottom: "-10%",
+    left: "30%",
+  },
+};
