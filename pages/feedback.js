@@ -37,7 +37,7 @@ export default function Feedback() {
     };
   }, []);
 
-  // ——— UI State (unchanged) ———
+  // ——— UI State (unchanged + new consent) ———
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
   const [attempt, setAttempt] = useState(1);
@@ -46,6 +46,7 @@ export default function Feedback() {
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
+  const [consent, setConsent] = useState(false); // NEW
 
   const [status, setStatus] = useState({ type: "", text: "" }); // 'success' | 'error' | ''
   const [isStarting, setIsStarting] = useState(false);
@@ -64,6 +65,7 @@ export default function Feedback() {
     !!email.trim() &&
     emailOK &&
     !!accessCode.trim() &&
+    consent &&             // NEW: must tick consent
     !isStarting &&
     !isInCall;
 
@@ -113,7 +115,20 @@ export default function Feedback() {
     setStatus({ text: "", type: "" });
   }
 
-  // ——— Start Voice Session (unchanged logic) ———
+  // ——— Auto-scroll to form when persona selected ———
+  const formRef = useRef(null);
+  function handlePersonaSelect(card) {
+    setSelectedPersona(card.key);
+    setSelectedAgentId(card.agentId);
+
+    // Smooth scroll to form
+    // small timeout lets React paint the "visible" class before we scroll
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  // ——— Start Voice Session (unchanged logic, just respects consent via canSubmit) ———
   async function onSubmit(e) {
     e.preventDefault();
     hideStatus();
@@ -134,6 +149,10 @@ export default function Feedback() {
     }
     if (!retellRef.current) {
       showStatus("Retell SDK not initialised yet. Give it a moment, then try again.", "error");
+      return;
+    }
+    if (!consent) {
+      showStatus("Please confirm you consent to processing your data.", "error");
       return;
     }
 
@@ -217,7 +236,7 @@ export default function Feedback() {
         </header>
 
         <main>
-          {/* Persona Grid (adds card-glow only — logic unchanged) */}
+          {/* Persona Grid */}
           <section className="personas-grid" id="personasGrid">
             {personaCards.map((card) => {
               const selected = selectedPersona === card.key;
@@ -227,15 +246,9 @@ export default function Feedback() {
                   className={`persona-card${selected ? " selected" : ""}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => {
-                    setSelectedPersona(card.key);
-                    setSelectedAgentId(card.agentId);
-                  }}
+                  onClick={() => handlePersonaSelect(card)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      setSelectedPersona(card.key);
-                      setSelectedAgentId(card.agentId);
-                    }
+                    if (e.key === "Enter" || e.key === " ") handlePersonaSelect(card);
                   }}
                 >
                   <div className="card-glow" />
@@ -248,8 +261,12 @@ export default function Feedback() {
             })}
           </section>
 
-          {/* Form (decorative elements only; logic & structure intact) */}
-          <section className={`form-section ${selectedPersona ? "visible" : ""}`} id="participantForm">
+          {/* Form */}
+          <section
+            ref={formRef}
+            className={`form-section ${selectedPersona ? "visible" : ""}`}
+            id="participantForm"
+          >
             <div className="form-glow" />
             <h3 className="form-title">
               {selectedPersona
@@ -342,6 +359,22 @@ export default function Feedback() {
                 />
               </div>
 
+              {/* NEW: Consent */}
+              <div className="form-group consent-row">
+                <label className="consent-label">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                  />
+                  <span>
+                    I consent to the processing of my data for the purpose of running this simulation
+                    and sending me my report. I have read the{" "}
+                    <a href="/privacy">Privacy Notice</a>.
+                  </span>
+                </label>
+              </div>
+
               <button
                 type="submit"
                 className="start-button"
@@ -359,7 +392,7 @@ export default function Feedback() {
               <p>Connecting to your training session...</p>
             </div>
 
-            {/* End call button (separate; type=button to avoid resubmission) */}
+            {/* End call button */}
             {isInCall && (
               <button
                 id="end-session-btn"
@@ -391,7 +424,7 @@ export default function Feedback() {
         </main>
       </div>
 
-      {/* —— BEAUTY-ONLY CSS (all logic unchanged) —— */}
+      {/* —— BEAUTY-ONLY CSS (all logic unchanged; + consent styles) —— */}
       <style jsx global>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -551,6 +584,17 @@ export default function Feedback() {
         .attempt-text { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
         .attempt-button:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); transform: translateY(-2px); }
         .attempt-button.selected { background: linear-gradient(135deg, rgba(2,245,236,0.2), rgba(249,91,246,0.15)); border-color: #02f5ec; box-shadow: 0 4px 20px rgba(2,245,236,0.3); }
+
+        .consent-row { margin-top: 6px; }
+        .consent-label {
+          display: flex; gap: 12px; align-items: flex-start; font-size: 0.95rem; color: rgba(255,255,255,0.9);
+        }
+        .consent-label input[type="checkbox"] {
+          margin-top: 3px; width: 18px; height: 18px; accent-color: #02f5ec;
+        }
+        .consent-label a {
+          color: #02f5ec; text-decoration: underline; text-underline-offset: 3px;
+        }
 
         .start-button {
           width: 100%; padding: 20px;
