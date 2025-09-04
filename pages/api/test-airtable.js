@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   // Try to fetch from Airtable
   if (config.hasApiKey && config.hasBaseId && config.hasTableId) {
     try {
-      const url = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(process.env.AIRTABLE_TABLE_ID)}?maxRecords=1`;
+      const url = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE_ID}?maxRecords=1`;
       
       const response = await fetch(url, {
         headers: {
