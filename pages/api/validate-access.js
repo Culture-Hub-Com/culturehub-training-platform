@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ valid: false, message: 'Method not allowed' });
   }
 
-  const { code } = req.body || {};
+  const { accesscode } = req.body || {};
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ valid: false, message: 'Missing or invalid code' });
   }
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   try {
     // IMPORTANT: your field is named "Code" (not Access_Code)
     const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_ID_OR_NAME)}`);
-    const escaped = code.replace(/'/g, "\\'");
+    const escaped = accesscode.replace(/'/g, "\\'");
     const formula = `{Code}='${escaped}'`;
     url.searchParams.set('filterByFormula', formula);
     url.searchParams.set('maxRecords', '1');
