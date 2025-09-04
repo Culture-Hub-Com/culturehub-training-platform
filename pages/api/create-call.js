@@ -106,9 +106,7 @@ export default async function handler(req, res) {
     // ---- 3) Increment Used_Count in Airtable
     // (Safe enough for your current volume; if you ever need strict atomicity we can add a retry/compare step.)
     const newUsed = used + 1;
-    const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
-      AIRTABLE_TABLE_ID
-    )}/${record.id}`;
+    const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Access_Codes/${record.id}`;
 
     const patchResp = await fetch(patchUrl, {
       method: 'PATCH',
