@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     const formula = `{Code}='${escapeForFormula(accessCode)}'`;
     const url =
-      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_ID)}` +
+      `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Access_Codes` +
       `?maxRecords=1&filterByFormula=${encodeURIComponent(formula)}`;
 
     const findResp = await fetch(url, {
