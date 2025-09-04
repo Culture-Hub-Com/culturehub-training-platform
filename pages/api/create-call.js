@@ -3,7 +3,7 @@
 // then increments Used_Count for that code.
 
 export default async function handler(req, res) {
-  // CORS (leave * for now since you’re calling from your public site)
+  // CORS (leave * for now since you're calling from your public site)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -36,7 +36,6 @@ export default async function handler(req, res) {
     // ---- 1) Look up the access code in Airtable
     const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-    const AIRTABLE_TABLE_ID = process.env.AIRTABLE_TABLE_ID; // table id OR name
     const RETELL_API_KEY   = process.env.RETELL_API_KEY;
 
     const formula = `{Code}='${escapeForFormula(accessCode)}'`;
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
     const used = toInt(fields.Used_Count);
     const max  = toInt(fields.Max_Uses);
 
-    // If you have a Remaining_Uses formula field we’ll prefer it; else compute
+    // If you have a Remaining_Uses formula field we'll prefer it; else compute
     const remaining =
       fields.Remaining_Uses !== undefined
         ? toInt(fields.Remaining_Uses)
