@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     const AIRTABLE_TABLE_ID = process.env.AIRTABLE_TABLE_ID; // table id OR name
     const RETELL_API_KEY   = process.env.RETELL_API_KEY;
 
-    const formula = `AND({Code}='${escapeForFormula(accessCode)}'`;
+    const formula = `{Code}='${escapeForFormula(accessCode)}'`;
     const url =
       `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_ID)}` +
       `?maxRecords=1&filterByFormula=${encodeURIComponent(formula)}`;
