@@ -37,7 +37,7 @@ export default function Feedback() {
     };
   }, []);
 
-  // ——— UI State (unchanged + new consent) ———
+  // ——— UI State (+ consent + access validation) ———
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
   const [attempt, setAttempt] = useState(1);
@@ -46,7 +46,12 @@ export default function Feedback() {
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
-  const [consent, setConsent] = useState(false); // NEW
+  const [consent, setConsent] = useState(false);
+
+  // Access code validation state
+  const [accessValid, setAccessValid] = useState(null); // null | true | false
+  const [accessChecking, setAccessChecking] = useState(false);
+  const [accessMsg, setAccessMsg] = useState(""); // small inline hint
 
   const [status, setStatus] = useState({ type: "", text: "" }); // 'success' | 'error' | ''
   const [isStarting, setIsStarting] = useState(false);
@@ -65,7 +70,8 @@ export default function Feedback() {
     !!email.trim() &&
     emailOK &&
     !!accessCode.trim() &&
-    consent &&             // must tick consent
+    consent &&
+    accessValid === true &&   // must be validated and valid
     !isStarting &&
     !isInCall;
 
@@ -127,7 +133,55 @@ export default function Feedback() {
     }, 50);
   }
 
-  // ——— Start Voice Session (unchanged logic) ———
+  // ——— Access code validation ———
+  async function validateAccessCode(code) {
+    const trimmed = (code || "").trim();
+    if (!trimmed) {
+      setAccessValid(null);
+      setAccessMsg("");
+      return;
+    }
+    try {
+      setAccessChecking(true);
+      setAccessMsg("");
+      setAccessValid(null);
+      const res = await fetch("/api/validate-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessCode: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Unable to validate code");
+      if (data?.valid) {
+        setAccessValid(true);
+        setAccessMsg("Code verified ✓");
+      } else {
+        setAccessValid(false);
+        setAccessMsg(data?.message || "Invalid or expired code");
+      }
+    } catch (err) {
+      console.error("Access validate error:", err);
+      setAccessValid(false);
+      setAccessMsg(err.message || "Could not validate code");
+    } finally {
+      setAccessChecking(false);
+    }
+  }
+
+  // Validate when the user leaves the field
+  function onAccessBlur() {
+    validateAccessCode(accessCode);
+  }
+
+  // If they keep typing after a validation, clear the state so they must re-check
+  function onAccessChange(e) {
+    const val = e.target.value;
+    setAccessCode(val);
+    setAccessValid(null);
+    setAccessMsg("");
+  }
+
+  // ——— Start Voice Session ———
   async function onSubmit(e) {
     e.preventDefault();
     hideStatus();
@@ -153,6 +207,15 @@ export default function Feedback() {
     if (!consent) {
       showStatus("Please confirm you consent to processing your data.", "error");
       return;
+    }
+
+    // Safety re-check: ensure code is valid right now
+    if (accessValid !== true) {
+      await validateAccessCode(accessCode);
+      if (accessValid !== true) {
+        showStatus(accessMsg || "Please enter a valid access code.", "error");
+        return;
+      }
     }
 
     setIsStarting(true);
@@ -189,7 +252,7 @@ export default function Feedback() {
     }
   }
 
-  // ——— End Voice Session (unchanged logic) ———
+  // ——— End Voice Session ———
   async function endSession() {
     try {
       if (retellRef.current) {
@@ -216,7 +279,7 @@ export default function Feedback() {
         />
       </Head>
 
-      {/* Floating color swirls (added swirl-4) */}
+      {/* Floating color swirls */}
       <div className="color-swirl swirl-1" />
       <div className="color-swirl swirl-2" />
       <div className="color-swirl swirl-3" />
@@ -352,10 +415,21 @@ export default function Feedback() {
                   className="form-input"
                   placeholder="Enter your training access code"
                   value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
+                  onChange={onAccessChange}
+                  onBlur={onAccessBlur}
                   required
                   type="text"
                 />
+                {/* small inline hint */}
+                {accessChecking && (
+                  <div className="inline-hint checking">Checking code…</div>
+                )}
+                {accessValid === true && !!accessMsg && (
+                  <div className="inline-hint ok">{accessMsg}</div>
+                )}
+                {accessValid === false && !!accessMsg && (
+                  <div className="inline-hint bad">{accessMsg}</div>
+                )}
               </div>
 
               {/* Consent + gentle recording note */}
@@ -373,7 +447,6 @@ export default function Feedback() {
                   </span>
                 </label>
 
-                {/* NEW: Soft, reassuring recording note */}
                 <p className="privacy-note">
                   This call is <strong>recorded solely for training</strong> and to generate your
                   personalised report. A small internal team may review short snippets to improve the
@@ -431,7 +504,7 @@ export default function Feedback() {
         </main>
       </div>
 
-      {/* —— BEAUTY-ONLY CSS (all logic unchanged; + consent styles) —— */}
+      {/* —— BEAUTY-ONLY CSS (unchanged; + tiny hints) —— */}
       <style jsx global>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -576,6 +649,12 @@ export default function Feedback() {
         .form-input:focus { outline: none; border-color: #02f5ec; background: rgba(255,255,255,0.1); box-shadow: 0 0 0 4px rgba(2,245,236,0.15); }
         .form-input::placeholder { color: rgba(255,255,255,0.4); }
 
+        /* inline hint below access code */
+        .inline-hint { margin-top: 8px; font-size: 0.9rem; }
+        .inline-hint.ok { color: #02f5ec; }
+        .inline-hint.bad { color: #ffcccb; }
+        .inline-hint.checking { color: rgba(255,255,255,0.7); }
+
         .attempt-selector { margin-bottom: 30px; }
         .attempt-buttons { display: flex; gap: 15px; justify-content: center; }
         .attempt-button {
@@ -603,7 +682,6 @@ export default function Feedback() {
           color: #02f5ec; text-decoration: underline; text-underline-offset: 3px;
         }
 
-        /* NEW: soft recording note */
         .privacy-note {
           margin-top: 10px;
           font-size: 0.88rem;
@@ -644,7 +722,7 @@ export default function Feedback() {
         .status-success { background: linear-gradient(135deg, rgba(2,245,236,0.2), rgba(16,185,129,0.15)); border: 1px solid rgba(2,245,236,0.4); color: #02f5ec; }
 
         .footer { text-align: center; padding: 40px 20px; margin-top: 80px; border-top: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.8s ease-out; }
-        .copyright { font-size: 0.9rem; color: rgba(255,255,255,0.6); font-weight: 300; letter-spacing: 0.5px; }
+        .copyright { font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); font-weight: 300; letter-spacing: 0.5px; }
 
         @media (max-width: 768px) {
           .container { padding: 20px 15px; }
