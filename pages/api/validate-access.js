@@ -19,20 +19,23 @@ export default async function handler(req, res) {
 
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-  const AIRTABLE_TABLE_ID_OR_NAME = process.env.AIRTABLE_TABLE_ID_OR_NAME; // e.g. tblFUNGrX9M2n7Ies or 'Access_Codes'
+  // accept either TABLE_ID_OR_NAME or TABLE_ID (what you already set)
+  const AIRTABLE_TABLE_ID_OR_NAME =
+    process.env.AIRTABLE_TABLE_ID_OR_NAME || process.env.AIRTABLE_TABLE_ID; // e.g. 'Access_Codes' or 'tblFUNGrX9M2n7Ies'
 
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID || !AIRTABLE_TABLE_ID_OR_NAME) {
     return res.status(500).json({
       valid: false,
-      message: 'Airtable env vars missing. Set AIRTABLE_API_KEY, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID_OR_NAME.',
+      message:
+        'Airtable env vars missing. Set AIRTABLE_API_KEY, AIRTABLE_BASE_ID, and AIRTABLE_TABLE_ID_OR_NAME (or AIRTABLE_TABLE_ID).',
     });
   }
 
   try {
-    // 1) Find record by Access_Code (case-sensitive match).
-    // We *only* use formula to find; we’ll check Remaining_Uses & expiry in JS to avoid formula quirks.
+    // IMPORTANT: your field is named "Code" (not Access_Code)
     const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_ID_OR_NAME)}`);
-    const formula = `{Access_Code}='${code.replace(/'/g, "\\'")}'`;
+    const escaped = code.replace(/'/g, "\\'");
+    const formula = `{Code}='${escaped}'`;
     url.searchParams.set('filterByFormula', formula);
     url.searchParams.set('maxRecords', '1');
 
@@ -45,7 +48,6 @@ export default async function handler(req, res) {
 
     const payload = await atRes.json();
     if (!atRes.ok) {
-      // Bubble Airtable API error text to help debug
       return res.status(502).json({ valid: false, message: `Airtable error: ${JSON.stringify(payload)}` });
     }
 
@@ -55,9 +57,8 @@ export default async function handler(req, res) {
 
     const record = payload.records[0];
     const f = record.fields || {};
-
-    // 2) Remaining uses
     const remainingUses = Number(f.Remaining_Uses ?? 0);
+
     if (!Number.isFinite(remainingUses) || remainingUses <= 0) {
       return res.status(200).json({
         valid: false,
@@ -66,7 +67,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3) Optional: Expiry check if you added an "Expires_At" date field (ISO or date)
     if (f.Expires_At) {
       const now = new Date();
       const expiresAt = new Date(f.Expires_At);
@@ -79,7 +79,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // If we get here, the code is valid for use
     return res.status(200).json({
       valid: true,
       recordId: record.id,
