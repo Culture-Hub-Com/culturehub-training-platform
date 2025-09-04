@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
   try {
     // Build the Airtable API URL
-    const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_ID)}`);
+    const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`);
     
     // Escape single quotes properly for Airtable formula
     const escaped = accessCode.replace(/'/g, "''");
