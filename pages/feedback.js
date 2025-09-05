@@ -81,8 +81,7 @@ export default function Feedback() {
       title: "High Dominance",
       letter: "D",
       iconClass: "persona-d",
-      desc:
-        "Direct, results-focused, and competitive. May be defensive or pushback against feedback. Values efficiency and bottom-line impact.",
+      desc: "Direct, results-focused, and competitive.",
       agentId: "agent_2521f34c59eb0bdc62975a8e1e",
     },
     {
@@ -90,8 +89,7 @@ export default function Feedback() {
       title: "High Influence",
       letter: "I",
       iconClass: "persona-i",
-      desc:
-        "Enthusiastic, people-oriented, and optimistic. May take feedback personally or become emotional. Values relationships and recognition.",
+      desc: "Enthusiastic, people-oriented, and optimistic.",
       agentId: "agent_b9c3042ecd4b4d5a7b64e7caee", // live agent
     },
     {
@@ -99,17 +97,16 @@ export default function Feedback() {
       title: "High Steadiness",
       letter: "S",
       iconClass: "persona-s",
-      desc:
-        "Calm, supportive, and collaborative. May avoid confrontation or need reassurance. Values stability and team harmony.",
+      desc: "Calm, supportive, and collaborative.",
       agentId: "agent_c92ec6e95cc1732c47363c535c",
     },
     {
+      // keep key the same so nothing else breaks
       key: "conscientiousness",
-      title: "High Conscientiousness",
+      title: "High Compliance",
       letter: "C",
       iconClass: "persona-c",
-      desc:
-        "Analytical, detail-oriented, and systematic. May question feedback validity or need specific examples. Values accuracy and quality.",
+      desc: "Analytical, detail-oriented, and systematic.",
       agentId: "agent_5342ccfe9d30c7f0ce26d65a2f",
     },
   ];
@@ -504,7 +501,7 @@ export default function Feedback() {
         </main>
       </div>
 
-      {/* —— BEAUTY-ONLY CSS (unchanged; + tiny hints) —— */}
+      {/* —— BEAUTY-ONLY CSS (unchanged; + tiny tweaks) —— */}
       <style jsx global>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -562,7 +559,7 @@ export default function Feedback() {
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255,255,255,0.15);
           border-radius: 24px;
-          padding: 35px;
+          padding: 30px; /* was 35px */
           text-align: center;
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
@@ -598,8 +595,8 @@ export default function Feedback() {
         .persona-s { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4); }
         .persona-c { background: linear-gradient(135deg, #3b82f6, #2563eb); box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4); }
 
-        .persona-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.5px; }
-        .persona-description { font-size: 0.95rem; color: rgba(255, 255, 255, 0.75); line-height: 1.7; font-weight: 300; }
+        .persona-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 10px; } /* was 12px */
+        .persona-description { font-size: 0.95rem; color: rgba(255, 255, 255, 0.75); line-height: 1.7; font-weight: 300; min-height: 56px; }
 
         .selection-indicator {
           position: absolute; top: 20px; right: 20px; width: 28px; height: 28px;
