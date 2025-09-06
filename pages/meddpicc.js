@@ -281,7 +281,7 @@ export default function MEDDPICC() {
           <h1 className="main-title">MEDDPICC Coaching Training</h1>
           <p className="subtitle">
             Practice GROW coaching conversations about deal qualification and MEDDPICC usage. 
-            You will play the role of a line manager and will coach your salesperson Jaime to improve the use of qualification tools. Choose the salesperson personality type below.
+            You'll play a sales manager coaching Jaime, an account executive who needs to improve their deal qualification practices. Use GROW coaching techniques to guide the conversation.
           </p>
         </header>
 
