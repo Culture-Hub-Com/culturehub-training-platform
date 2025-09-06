@@ -274,15 +274,18 @@ export default function MEDDPICC() {
       <div className="color-swirl swirl-4" />
 
       <div className="container">
-        <header className="header">
-          <div className="logo-container">
-            <img src="/logo.png" alt="CultureHub" className="logo-image" />
-          </div>
-          <h1 className="main-title">MEDDPICC Coaching Training</h1>
-          <p className="subtitle">
-            Practice GROW coaching conversations about deal qualification and MEDDPICC usage. 
-            You'll play a sales manager coaching Jaime, an account executive who needs to improve their deal qualification practices. Use GROW coaching techniques to guide the conversation.
-          </p>
+        <div className="header">
+  <h1 className="main-title">MEDDPICC Coaching Training</h1>
+  <p className="subtitle">
+    Practice coaching conversations about deal qualification and MEDDPICC usage.
+  </p>
+  <p className="description">
+    You'll play a sales manager coaching Jaime, an account executive who needs to improve their deal qualification practices. Use GROW coaching techniques to guide the conversation.
+  </p>
+  <p className="instruction">
+    Choose the personality type of your salesperson below.
+  </p>
+</div>
         </header>
 
         <main>
