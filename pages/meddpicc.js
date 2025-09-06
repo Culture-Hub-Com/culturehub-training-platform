@@ -150,7 +150,7 @@ export default function MEDDPICC() {
       if (!res.ok) throw new Error(data?.message || "Unable to validate code");
       if (data?.valid) {
         setAccessValid(true);
-        setAccessMsg("Code verified ✓");
+        setAccessMsg("Code verified ✔");
       } else {
         setAccessValid(false);
         setAccessMsg(data?.message || "Invalid or expired code");
@@ -274,18 +274,19 @@ export default function MEDDPICC() {
       <div className="color-swirl swirl-4" />
 
       <div className="container">
-        <div className="header">
-  <h1 className="main-title">MEDDPICC Coaching Training</h1>
-  <p className="subtitle">
-    Practice coaching conversations about deal qualification and MEDDPICC usage.
-  </p>
-  <p className="description">
-    You'll play a sales manager coaching Jaime, an account executive who needs to improve their deal qualification practices. Use GROW coaching techniques to guide the conversation.
-  </p>
-  <p className="instruction">
-    Choose the personality type of your salesperson below.
-  </p>
-</div>
+        <header className="header">
+          <div className="logo-container">
+            <img src="/logo.png" alt="CultureHub" className="logo-image" />
+          </div>
+          <h1 className="main-title">MEDDPICC Coaching Training</h1>
+          <p className="subtitle">
+            Practice coaching conversations about deal qualification and MEDDPICC usage. 
+            You'll play a sales manager coaching Jaime, an account executive who needs to improve their deal qualification practices. 
+            Use GROW coaching techniques to guide the conversation.
+          </p>
+          <p className="subtitle">
+            Choose the personality type of your salesperson below.
+          </p>
         </header>
 
         <main>
@@ -308,7 +309,7 @@ export default function MEDDPICC() {
                   <div className={`persona-icon ${card.iconClass}`}>{card.letter}</div>
                   <h3 className="persona-title">{card.title}</h3>
                   <p className="persona-description">{card.desc}</p>
-                  {selected && <div className="selection-indicator">✓</div>}
+                  {selected && <div className="selection-indicator">✔</div>}
                 </div>
               );
             })}
