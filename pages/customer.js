@@ -82,7 +82,7 @@ export default function Feedback() {
       letter: "D",
       iconClass: "persona-d",
       desc: "Direct, results-focused, and competitive.",
-      agentId: "agent_2521f34c59eb0bdc62975a8e1e",
+      agentId: "agent_b051831b4aab7c6af537731195",
     },
     {
       key: "influence",
