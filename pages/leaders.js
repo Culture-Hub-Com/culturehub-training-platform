@@ -81,7 +81,7 @@ export default function Leaders() {
       icon: "🧠",
       iconClass: "coaching-ei",
       desc: "Admit limits, welcome input, acknowledge mistakes, and build strong relationships through empathy.",
-      agentId: "agent_ei_coaching_placeholder", // Replace with actual agent ID
+      agentId: "agent_87e6438943818fb69a5d75c160", // Replace with actual agent ID
     },
     {
       key: "role-modelling",
