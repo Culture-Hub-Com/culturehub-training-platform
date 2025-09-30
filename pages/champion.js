@@ -83,7 +83,7 @@ export default function Champion() {
       letter: "D",
       iconClass: "persona-d",
       desc: "Results-driven, decisive, and competitive.",
-      agentId: "agent_placeholder_champion_d",
+      agentId: "agent_14e7dc631ae8519b58e6a88def",
     },
     {
       key: "influence",
@@ -91,7 +91,7 @@ export default function Champion() {
       letter: "I",
       iconClass: "persona-i",
       desc: "Enthusiastic, relationship-focused, and persuasive.",
-      agentId: "agent_placeholder_champion_i",
+      agentId: "agent_14e7dc631ae8519b58e6a88def",
     },
     {
       key: "steadiness",
@@ -99,7 +99,7 @@ export default function Champion() {
       letter: "S",
       iconClass: "persona-s",
       desc: "Patient, supportive, and collaborative.",
-      agentId: "agent_placeholder_champion_s",
+      agentId: "agent_14e7dc631ae8519b58e6a88def",
     },
     {
       key: "conscientiousness",
@@ -107,7 +107,7 @@ export default function Champion() {
       letter: "C",
       iconClass: "persona-c",
       desc: "Analytical, precise, and quality-focused.",
-      agentId: "agent_placeholder_champion_c",
+      agentId: "agent_14e7dc631ae8519b58e6a88def",
     },
   ];
 
