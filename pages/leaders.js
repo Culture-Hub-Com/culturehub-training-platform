@@ -89,7 +89,7 @@ export default function Leaders() {
       icon: "⭐",
       iconClass: "coaching-rm",
       desc: "Demonstrate the behaviours you want to see, exemplify positive behaviours, and inspire others through leadership.",
-      agentId: "agent_rm_coaching_placeholder", // Replace with actual agent ID
+      agentId: "agent_85ed0a55ce1b96d94f136255fb", // Replace with actual agent ID
     },
     {
       key: "courage-accountability",
