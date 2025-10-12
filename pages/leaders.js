@@ -97,7 +97,7 @@ export default function Leaders() {
       icon: "🛡️",
       iconClass: "coaching-ca",
       desc: "Make tough decisions, challenge the status quo, take responsibility for results, and follow through.",
-      agentId: "agent_ca_coaching_placeholder", // Replace with actual agent ID
+      agentId: "agent_d7bfe458ca1d1887ecef6fef42", // Replace with actual agent ID
     },
   ];
 
