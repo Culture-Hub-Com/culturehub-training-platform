@@ -463,7 +463,7 @@ export default function Discovery() {
             {/* Loading indicator */}
             <div className={`loading ${isStarting ? "visible" : ""}`} id="loadingIndicator">
               <div className="spinner"></div>
-              <p>Connecting to your coaching session...</p>
+              <p>Connecting to your call...</p>
             </div>
 
             {/* End call button */}
@@ -475,7 +475,7 @@ export default function Discovery() {
                 style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", marginTop: 20 }}
                 onClick={endSession}
               >
-                End Coaching Session
+                End Call
               </button>
             )}
 
