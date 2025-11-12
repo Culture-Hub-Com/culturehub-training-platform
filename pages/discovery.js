@@ -98,7 +98,7 @@ export default function Discovery() {
       letter: "S",
       iconClass: "persona-s",
       desc: "Calm, supportive, cautious. Opens up with trust, pace control, and care.",
-      agentId: "agent_c491fa285d3e5a88dee2121e2b",
+      agentId: "agent_ddb30ed4aa4232f001c28104ed",
     },
     {
       key: "conscientiousness",
@@ -106,7 +106,7 @@ export default function Discovery() {
       letter: "C",
       iconClass: "persona-c",
       desc: "Analytical, precise, risk-aware. Expects detail, proof, and clear method.",
-      agentId: "agent_66862cf5885881e68f3aad05b2",
+      agentId: "agent_aec6679c5ddfac8cde2fabf7bd",
     },
   ];
 
