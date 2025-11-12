@@ -90,7 +90,7 @@ export default function Discovery() {
       letter: "I",
       iconClass: "persona-i",
       desc: "Fast-paced, people-oriented, big-picture. Responds to energy and benefits.",
-      agentId: "agent_2823aa0cca4d17dff83baedc0f",
+      agentId: "agent_c33a788a2af155d150522ca493",
     },
     {
       key: "steadiness",
