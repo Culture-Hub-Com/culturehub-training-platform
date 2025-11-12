@@ -82,7 +82,7 @@ export default function Discovery() {
       letter: "D",
       iconClass: "persona-d",
       desc: "Direct, time-poor, results-focused. Expects clarity and evidence fast.",
-      agentId: "agent_e2cbd008cbd885f845eb8550f7",
+      agentId: "agent_ca66496b756b6a0ba02e5f4ac1",
     },
     {
       key: "influence",
