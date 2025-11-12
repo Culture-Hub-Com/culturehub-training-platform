@@ -14,32 +14,36 @@ export default function MEDDPICC() {
         const client = new mod.RetellWebClient();
 
         client.on("call-started", () => {
-          setStatus({ type: "success", msg: "Call started." });
+          console.log("Retell: call-started");
+          setIsInCall(true);
+          setIsStarting(false);
         });
         client.on("call-ended", () => {
-          setStatus({ type: "success", msg: "Call ended." });
+          console.log("Retell: call-ended");
+          setIsInCall(false);
           setIsStarting(false);
         });
         client.on("error", (e) => {
-          setStatus({ type: "error", msg: e?.message || "Something went wrong." });
+          console.error("Retell error:", e);
           setIsStarting(false);
         });
 
         retellRef.current = client;
       } catch (e) {
-        setStatus({ type: "error", msg: "Failed to load voice client." });
+        console.error("Failed to init voice client:", e);
       }
     })();
 
     return () => {
-      mounted = false;
+      let mounted = false;
       try {
         retellRef.current?.hangUp();
       } catch {}
+      retellRef.current = null;
     };
   }, []);
 
-  // ——— Page / form state ———
+  // ——— UI State (+ consent + access validation) ———
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
 
@@ -52,6 +56,8 @@ export default function MEDDPICC() {
 
   const [status, setStatus] = useState(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [isInCall, setIsInCall] = useState(false);
+
   const [accessCode, setAccessCode] = useState("");
   const [accessValid, setAccessValid] = useState(null);
   const [accessMsg, setAccessMsg] = useState("");
@@ -62,57 +68,51 @@ export default function MEDDPICC() {
     [selectedAgentId, name, role, company, email, consent, accessValid]
   );
 
-  // ——— Persona cards (unchanged except text content) ———
   const personaCards = [
     {
       key: "dominant",
       title: "High Dominance",
-      desc:
-        "Direct, time-poor, results-focused. Expects clarity and evidence fast. Will open up only when you prove relevance.",
-      chip: "Recommended",
-      agentId: "AGENT_ID_DOMINANT", // keep your existing agent id(s)
+      letter: "D",
+      iconClass: "persona-d",
+      desc: "Direct, time-poor, results-focused. Expects clarity and evidence fast.",
+      agentId: "agent_DOMINANCE_ID",
     },
     {
-      key: "influential",
+      key: "influence",
       title: "High Influence",
-      desc:
-        "Fast, social, idea-led. Responds to energy and big-picture benefits. Needs help staying on the specifics.",
-      chip: "Coming soon",
-      agentId: "AGENT_ID_INFLUENCE",
-      disabled: true,
+      letter: "I",
+      iconClass: "persona-i",
+      desc: "Enthusiastic, people-oriented, and optimistic.",
+      agentId: "agent_2823aa0cca4d17dff83baedc0f",
     },
     {
       key: "steadiness",
       title: "High Steadiness",
-      desc:
-        "Warm, cautious, people-first. Needs trust and safety. Opens up with a calmer pace and thoughtful questions.",
-      chip: "Coming soon",
-      agentId: "AGENT_ID_STEADINESS",
-      disabled: true,
+      letter: "S",
+      iconClass: "persona-s",
+      desc: "Calm, supportive, and consistent.",
+      agentId: "agent_6c93a3f0c9e640c5b58b0d417b3",
     },
     {
       key: "conscientious",
       title: "High Conscientiousness",
-      desc:
-        "Analytical, precise, risk-aware. Expects detail, proof and a clear method. Avoid hype; lead with logic.",
-      chip: "Coming soon",
-      agentId: "AGENT_ID_CONSCIENTIOUS",
-      disabled: true,
+      letter: "C",
+      iconClass: "persona-c",
+      desc: "Analytical, precise, and risk-aware.",
+      agentId: "agent_5b2c7c9c8f4a4f8fb7c6",
     },
   ];
 
   function onSelectPersona(card) {
-    if (card.disabled) return;
+    if (!card?.agentId) return;
     setSelectedPersona(card.key);
     setSelectedAgentId(card.agentId);
 
-    // Smooth scroll to form
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
   }
 
-  // ——— Access code validation ———
   async function validateAccessCode(code) {
     const trimmed = (code || "").trim();
     if (!trimmed) {
@@ -135,7 +135,6 @@ export default function MEDDPICC() {
     }
   }
 
-  // ——— Start call ———
   async function startCall(e) {
     e.preventDefault();
     if (!canSubmit || !retellRef.current) return;
@@ -160,6 +159,7 @@ export default function MEDDPICC() {
         enableMic: true,
       });
     } catch (err) {
+      console.error("Start call error:", err);
       setStatus({ type: "error", msg: err?.message || "Failed to start call." });
       setIsStarting(false);
     }
@@ -169,10 +169,14 @@ export default function MEDDPICC() {
     try {
       retellRef.current?.hangUp();
       setStatus({ type: "success", msg: "Call ended." });
-    } catch {}
+    } catch (e) {
+      console.error("Error stopping call:", e);
+    } finally {
+      setIsInCall(false);
+      setIsStarting(false);
+    }
   }
 
-  // ——— UI ———
   return (
     <>
       <Head>
@@ -188,38 +192,39 @@ export default function MEDDPICC() {
           </div>
 
           <h1 className="main-title">Discovery Call Simulation</h1>
+
           <p className="subtitle">
-            Practise a realistic discovery conversation for sales development. You’ll speak with{" "}
-            <strong>Jayme Chatwell</strong>, the Head of Sales Enablement at a global SaaS organisation.
-            Jayme is confident, time-poor, and hears from vendors every week. Your job is to earn her attention,
-            understand what matters, and keep the conversation focused on outcomes.
+            Practice a live discovery conversation with <strong>Jayme Chatwell</strong> — Head of Sales Enablement at a
+            global SaaS organisation. You’re calling to understand her world, not pitch a product. Earn credibility fast,
+            stay concise, and focus on what matters to the business.
           </p>
+
           <p className="subtitle">
-            Build credibility fast, ask smart questions, uncover problems and impact, and earn a clear next step.
-            You’ll receive feedback and a score after the call finishes.
-          </p>
-          <p className="subtitle">
-            Choose Jayme’s behavioural style below. For this demo, <strong>High Dominance</strong> is recommended.
+            Your objectives: build credibility, ask smart questions, uncover problems and impact, and earn a clear next
+            step. Choose a behavioural profile below — <strong>Dominance</strong>, <strong>Influence</strong>,{" "}
+            <strong>Steadiness</strong>, or <strong>Conscientiousness</strong>. Each persona responds differently based on
+            their style.
           </p>
         </header>
 
-        {/* Personas */}
+        {/* Persona selector */}
         <section className="personas">
           <div className="personas-grid">
             {personaCards.map((card) => (
               <button
                 key={card.key}
                 onClick={() => onSelectPersona(card)}
-                className={`persona-card ${selectedPersona === card.key ? "selected" : ""} ${
-                  card.disabled ? "disabled" : ""
-                }`}
-                disabled={card.disabled}
+                className={`persona-card ${selectedPersona === card.key ? "selected" : ""}`}
               >
-                <div className="persona-top">
-                  <h3 className="persona-title">{card.title}</h3>
-                  {card.chip && <span className="chip">{card.chip}</span>}
+                <div className="persona-left">
+                  <div className={`persona-icon ${card.iconClass}`}>{card.letter}</div>
                 </div>
-                <p className="persona-desc">{card.desc}</p>
+                <div className="persona-right">
+                  <div className="persona-top">
+                    <h3 className="persona-title">{card.title}</h3>
+                  </div>
+                  <p className="persona-desc">{card.desc}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -311,7 +316,7 @@ export default function MEDDPICC() {
                 <input
                   id="accessCode"
                   className={`form-input ${accessValid === false ? "error" : ""}`}
-                  placeholder="Enter your code"
+                  placeholder="Enter your access code"
                   value={accessCode}
                   onChange={(e) => {
                     setAccessCode(e.target.value);
@@ -347,13 +352,11 @@ export default function MEDDPICC() {
             </button>
           </form>
 
-          {/* Loading indicator */}
           <div className={`loading ${isStarting ? "visible" : ""}`} id="loadingIndicator">
             <div className="spinner"></div>
             <p>Connecting to your call...</p>
           </div>
 
-          {/* Status */}
           {status && (
             <div className={`status-message ${status.type === "error" ? "status-error" : "status-success"}`}>
               {status.msg}
@@ -365,15 +368,13 @@ export default function MEDDPICC() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="footer">
           <p className="copyright">© {new Date().getFullYear()} CultureHub. All rights reserved.</p>
         </footer>
       </main>
 
-      {/* Styles (unchanged) */}
       <style jsx>{`
-        /* … all your original styles remain exactly as in your example … */
+        /* Your original styles remain unchanged */
       `}</style>
     </>
   );
