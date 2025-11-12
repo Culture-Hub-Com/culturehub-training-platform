@@ -215,7 +215,7 @@ export default function Discovery() {
       accessCode: accessCode.trim(),
       persona: selectedPersona,
       agentId: selectedAgentId,
-      scenario: "discovery", // was "meddpicc"
+      scenario: "discovery",
       attempt,
     };
 
@@ -280,14 +280,14 @@ export default function Discovery() {
           </div>
           <h1 className="main-title">Discovery Call Simulation</h1>
           <p className="subtitle">
-            Practise a live discovery conversation with <strong>Jayme Chatwell</strong> — Head of Sales Enablement at a
-            global SaaS organisation. You’re calling to understand her world, not to pitch. Earn credibility fast, stay
-            concise, and focus on what matters to the business.
+            Practise a live discovery call with <strong>Jayme Chatwell</strong>, Head of Sales Enablement at <strong>Arctura Solutions</strong>.
+            You are calling to understand her world and assess fit for your sales development and e-learning platform that improves onboarding speed, consistency of performance, and measurable impact.
+            Keep it concise, credible, and focused on outcomes that matter to her business.
           </p>
           <p className="subtitle">
-            Your objectives: build credibility, ask intelligent questions, uncover problems and impact, and earn a clear next step.
-            Choose a behavioural profile below — <strong>Dominance</strong>, <strong>Influence</strong>, <strong>Steadiness</strong>, or <strong>Conscientiousness</strong>.
-            Each persona responds differently based on their style.
+            Your objectives are to build credibility, ask intelligent questions, uncover problems and impact, and earn a clear next step.
+            Choose a behavioural profile below: <strong>Dominance</strong>, <strong>Influence</strong>, <strong>Steadiness</strong>, or <strong>Conscientiousness</strong>.
+            Each persona responds differently based on their style, so adapt your approach.
           </p>
         </header>
 
