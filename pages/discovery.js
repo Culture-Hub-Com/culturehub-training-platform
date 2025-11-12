@@ -251,7 +251,7 @@ export default function Discovery() {
     } finally {
       setIsInCall(false);
       setIsStarting(false);
-      showStatus("Training session completed!", "success");
+      showStatus("Simulation completed!", "success");
     }
   }
 
@@ -455,7 +455,7 @@ export default function Discovery() {
                 id="startButton"
                 disabled={!canSubmit}
               >
-                {isStarting ? "Connecting…" : "Start GROW Coaching Session"}
+                {isStarting ? "Connecting…" : "Start Discovery Call"}
                 <span className="button-shine" />
               </button>
             </form>
