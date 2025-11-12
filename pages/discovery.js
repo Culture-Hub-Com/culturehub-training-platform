@@ -280,7 +280,7 @@ export default function Discovery() {
           </div>
           <h1 className="main-title">Discovery Call Simulation</h1>
           <p className="subtitle">
-            Practise a live discovery call with <strong>Jayme Chatwell</strong>, Head of Sales Enablement at <strong>Arctura Solutions</strong>.
+            Practise a live discovery call with <strong>Jaime Chatwell</strong>, Head of Sales Enablement at <strong>Arctura Solutions</strong>.
             You are calling to understand her world and assess fit for your sales development and e-learning platform that improves onboarding speed, consistency of performance, and measurable impact.
             Keep it concise, credible, and focused on outcomes that matter to her business.
           </p>
