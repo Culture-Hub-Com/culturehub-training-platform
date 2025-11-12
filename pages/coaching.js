@@ -1,7 +1,7 @@
 import Head from "next/head";
 import { useEffect, useRef, useState, useMemo } from "react";
 
-export default function Discovery() {
+export default function Coaching() {
   // ——— Retell SDK client (loaded only in the browser) ———
   const retellRef = useRef(null);
 
@@ -236,7 +236,7 @@ export default function Discovery() {
     } catch (err) {
       console.error(err);
       setIsStarting(false);
-      showStatus(err.message || "Failed to start coaching session. Please try again.", "error");
+      showStatus(err.message || "Failed to start training session. Please try again.", "error");
     }
   }
 
@@ -280,14 +280,10 @@ export default function Discovery() {
           </div>
           <h1 className="main-title">Coaching Simulation: Missed Minutes</h1>
           <p className="subtitle">
-            Practise a live **coaching conversation** with your direct report <strong>Jayme</strong> at <strong>MA</strong> (chartered surveyors).
-            Jayme recently missed a deadline for issuing client meeting minutes and the version sent included avoidable errors (template, spelling, formatting).
-            Your job is to coach — not rescue — using clear framing, good questions, and a practical way forward.
+            Practise a live coaching conversation with your direct report, <strong>Jaime</strong>, who works at a firm of <strong>chartered surveyors</strong>. She recently missed the deadline for sending client meeting minutes, and the version sent contained avoidable errors such as using the wrong template, spelling mistakes, or formatting issues. Your role is to coach, not rescue. Use clarity, curiosity, and good questions to help Jaime reflect, take ownership, and plan how to prevent it happening again.
           </p>
           <p className="subtitle">
-            Objectives: set the tone, explore what’s really happening, encourage ownership, and agree concrete next steps. 
-            Choose a behavioural profile below: <strong>Dominance</strong>, <strong>Influence</strong>, <strong>Steadiness</strong>, or <strong>Conscientiousness</strong>.
-            Each persona responds differently — adapt your approach.
+            Choose a behavioural profile to test your adaptability: <strong>Dominance</strong>, <strong>Influence</strong>, <strong>Steadiness</strong>, or <strong>Conscientiousness</strong>. Each one changes how Jaime responds, so flex your approach to match her style. When you’re ready, pick a profile and start the conversation.
           </p>
         </header>
 
@@ -329,7 +325,7 @@ export default function Discovery() {
                 ? `Training with ${
                     personaCards.find((c) => c.key === selectedPersona)?.title
                   } Personality`
-                : "Ready to Start Your Training"}
+                : "Ready to Start Your Coaching"}
             </h3>
 
             {/* Hide form during call to avoid accidental submit */}
@@ -436,7 +432,7 @@ export default function Discovery() {
                   />
                   <span>
                     I consent to the processing of my data for the purpose of running this simulation
-                    and sending me my report. I have read the{" "}
+                    and sending me my report. I have read the {""}
                     <a href="/privacy?from=coaching">Privacy Notice</a>.
                   </span>
                 </label>
@@ -444,7 +440,7 @@ export default function Discovery() {
                 <p className="privacy-note">
                   This call is <strong>recorded solely for training</strong> and to generate your
                   personalised report. A small internal team may review short snippets to improve the
-                  learning experience. You can ask us to delete your data at any time:{" "}
+                  learning experience. You can ask us to delete your data at any time: {""}
                   <a href="mailto:simulations@culture-hub.com">simulations@culture-hub.com</a>.
                 </p>
               </div>
@@ -463,7 +459,7 @@ export default function Discovery() {
             {/* Loading indicator */}
             <div className={`loading ${isStarting ? "visible" : ""}`} id="loadingIndicator">
               <div className="spinner"></div>
-              <p>Connecting to your coaching conversation...</p>
+              <p>Connecting to your call...</p>
             </div>
 
             {/* End call button */}
@@ -475,7 +471,7 @@ export default function Discovery() {
                 style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", marginTop: 20 }}
                 onClick={endSession}
               >
-                End Coaching Conversation
+                End Call
               </button>
             )}
 
@@ -498,7 +494,7 @@ export default function Discovery() {
         </main>
       </div>
 
-      {/* —— CSS (same as feedback.js) —— */}
+      {/* —— CSS (unchanged except for page titles) —— */}
       <style jsx global>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -546,7 +542,7 @@ export default function Discovery() {
         .logo-image { max-width: 350px; height: auto; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(248, 91, 246, 0.3)); }
 
         .main-title { font-size: 2.5rem; font-weight: 600; margin-bottom: 15px; color: white; text-shadow: 0 2px 20px rgba(248, 91, 246, 0.3); }
-        .subtitle  { font-size: 1.25rem; color: rgba(255, 255, 255, 0.85); max-width: 600px; margin: 0 auto 50px; line-height: 1.7; font-weight: 300; }
+        .subtitle  { font-size: 1.25rem; color: rgba(255, 255, 255, 0.85); max-width: 680px; margin: 0 auto 24px; line-height: 1.7; font-weight: 300; }
 
         .personas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 35px; margin-bottom: 50px; animation: fadeInUp 0.8s ease-out; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
