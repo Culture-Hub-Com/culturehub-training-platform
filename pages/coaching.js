@@ -82,7 +82,7 @@ export default function Coaching() {
       letter: "D",
       iconClass: "persona-d",
       desc: "Direct, time-pressed, outcome-first. Expects clarity and ownership fast.",
-      agentId: "agent_ca66496b756b6a0ba02e5f4ac1",
+      agentId: "agent_1fd8757b389469ca8010fb1610",
     },
     {
       key: "influence",
