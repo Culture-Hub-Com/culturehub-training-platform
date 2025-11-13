@@ -106,7 +106,7 @@ export default function Coaching() {
       letter: "C",
       iconClass: "persona-c",
       desc: "Analytical, precise, risk-aware. Expects evidence, standards, and process.",
-      agentId: "agent_aec6679c5ddfac8cde2fabf7bd",
+      agentId: "agent_4f65bf8073862a170fc6411a15",
     },
   ];
 
