@@ -90,7 +90,7 @@ export default function Coaching() {
       letter: "I",
       iconClass: "persona-i",
       desc: "Warm, talkative, big-picture. Responds to energy, recognition, and optimism.",
-      agentId: "agent_c33a788a2af155d150522ca493",
+      agentId: "agent_7539b3d3cc81dbab9913962f97",
     },
     {
       key: "steadiness",
