@@ -98,7 +98,7 @@ export default function Coaching() {
       letter: "S",
       iconClass: "persona-s",
       desc: "Calm, considerate, cautious. Opens up with patience, reassurance, and trust.",
-      agentId: "agent_ddb30ed4aa4232f001c28104ed",
+      agentId: "agent_639fdb3685ea56275829b841d2",
     },
     {
       key: "conscientiousness",
